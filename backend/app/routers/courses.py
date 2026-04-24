@@ -1,0 +1,1 @@
+#CRUD /admin/courses + GET /courses/me

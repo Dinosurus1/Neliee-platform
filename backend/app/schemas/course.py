@@ -1,0 +1,1 @@
+#Pydantic: CourseCreate, CourseOut, CourseUpdate, etc... para validacion de datos en las rutas y servicios relacionados con cursos

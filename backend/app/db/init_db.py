@@ -1,0 +1,39 @@
+#script para crear la base de datos y las tablas necesarias
+# app/db/init_db.py
+
+#Crea las tablas (si no existen) e inserta el primer admin.
+#Se ejecuta una sola vez en el lifespan de FastAPI.
+
+
+from sqlalchemy import select
+
+from app.core.config import settings
+from app.core.security import hash_password
+from app.db.database import engine, AsyncSessionLocal
+from app.models import models  # Importar para que Base conozca los modelos
+from app.db.database import Base
+
+
+async def init_db() -> None:
+    # 1. Crear tablas
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # 2. Seed: crear admin inicial si no existe
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(models.User).where(models.User.email == settings.FIRST_ADMIN_EMAIL)
+        )
+        if result.scalar_one_or_none() is None:
+            admin = models.User(
+                full_name="Administrador",
+                email=settings.FIRST_ADMIN_EMAIL,
+                hashed_password=hash_password(settings.FIRST_ADMIN_PASSWORD),
+                role="admin",
+                is_active=True,
+            )
+            session.add(admin)
+            await session.commit()
+            print(f"✅ Admin seed creado: {settings.FIRST_ADMIN_EMAIL}")
+        else:
+            print("ℹ️  Admin ya existe, omitiendo seed.")

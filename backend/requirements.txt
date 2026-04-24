@@ -1,0 +1,8 @@
+annotated-types==0.7.0
+asarPy==1.0.1
+pydantic==2.13.3
+pydantic-settings==2.14.0
+pydantic_core==2.46.3
+python-dotenv==1.2.2
+typing-inspection==0.4.2
+typing_extensions==4.15.0

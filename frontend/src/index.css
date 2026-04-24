@@ -1,0 +1,93 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Variables de diseño ──────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-bg-primary:    #080b10;
+    --color-bg-secondary:  #0f1117;
+    --color-bg-card:       #131820;
+    --color-accent:        #06b6d4;    /* cyan-500 */
+    --color-accent-dim:    rgba(6, 182, 212, 0.15);
+    --color-border:        rgba(6, 182, 212, 0.2);
+    --color-text-primary:  #e2e8f0;
+    --color-text-muted:    #64748b;
+    --radius-card:         0.75rem;
+  }
+
+  /* Forzar dark mode global */
+  html { @apply dark; }
+
+  body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: 'Sora', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar personalizado (Chrome/Edge) */
+  ::-webkit-scrollbar        { width: 6px; }
+  ::-webkit-scrollbar-track  { background: var(--color-bg-primary); }
+  ::-webkit-scrollbar-thumb  { background: var(--color-accent-dim); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+}
+
+/* ── Utilidades de componentes ────────────────────────────────────────────── */
+@layer components {
+  /* Card base oscura */
+  .card {
+    @apply rounded-xl border bg-[var(--color-bg-card)] p-6;
+    border-color: var(--color-border);
+  }
+
+  /* Botón primario neón */
+  .btn-primary {
+    @apply relative inline-flex items-center gap-2 rounded-lg px-5 py-2.5
+           font-semibold text-sm text-gray-950 bg-cyan-400
+           transition-all duration-200
+           hover:bg-cyan-300 hover:shadow-neon-sm
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Botón secundario con borde */
+  .btn-outline {
+    @apply inline-flex items-center gap-2 rounded-lg border px-5 py-2.5
+           font-semibold text-sm text-cyan-400
+           transition-all duration-200
+           hover:bg-cyan-500/10 hover:border-cyan-400
+           active:scale-95 disabled:opacity-50;
+    border-color: var(--color-border);
+  }
+
+  /* Input oscuro */
+  .input {
+    @apply w-full rounded-lg border bg-gray-900 px-4 py-2.5
+           text-sm text-gray-100 placeholder-gray-600
+           outline-none transition-all duration-200
+           focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30;
+    border-color: var(--color-border);
+  }
+
+  /* Sección con textura de puntos */
+  .section-dots {
+    background-image: radial-gradient(circle, rgba(6,182,212,0.12) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Texto con gradiente neón */
+  .text-gradient {
+    @apply bg-gradient-to-r from-cyan-300 to-cyan-500 bg-clip-text text-transparent;
+  }
+
+  /* Línea separadora con glow */
+  .divider-neon {
+    @apply h-px w-full;
+    background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  }
+}

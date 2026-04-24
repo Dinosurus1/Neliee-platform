@@ -1,0 +1,1 @@
+/*hook generico para llamadas asyncronas a la api, con manejo de errores y loading state*/
