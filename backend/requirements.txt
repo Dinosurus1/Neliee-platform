@@ -1,8 +1,19 @@
-annotated-types==0.7.0
-asarPy==1.0.1
-pydantic==2.13.3
-pydantic-settings==2.14.0
-pydantic_core==2.46.3
-python-dotenv==1.2.2
-typing-inspection==0.4.2
-typing_extensions==4.15.0
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Pydantic v2
+pydantic==2.10.3
+pydantic-settings==2.6.1
+pydantic[email]==2.10.3
+
+# Base de datos async
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.17
+
+# Entorno
+python-dotenv==1.0.1

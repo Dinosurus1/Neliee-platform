@@ -1,0 +1,21 @@
+# ── FRONTEND (React / Node) ──
+node_modules/
+dist/
+.eslintcache
+
+# ── BACKEND (Python / FastAPI) ──
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.pytest_cache/
+
+# ── SECRETOS Y VARIABLES (¡NUNCA SE SUBEN!) ──
+.env
+.env.local
+.env.*
+
+# ── SISTEMA Y EDITORES ──
+.DS_Store
+.vscode/
