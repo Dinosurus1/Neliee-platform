@@ -1,6 +1,6 @@
 // src/pages/public/LoginPage.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -8,7 +8,6 @@ import Button from "../../components/ui/Button";
 export default function LoginPage() {
   const { handleLogin, isLoading, error } = useAuth();
   const navigate = useNavigate();
-
   const [form, setForm] = useState({ email: "", password: "" });
 
   function handleChange(e) {
@@ -18,57 +17,93 @@ export default function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     const role = await handleLogin(form.email, form.password);
-    if (role === "admin") navigate("/admin", { replace: true });
+    if (role === "admin")    navigate("/admin",     { replace: true });
     else if (role === "employee") navigate("/dashboard", { replace: true });
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)] section-dots px-4">
-      {/* Glow de fondo */}
-      <div className="pointer-events-none absolute inset-0 bg-hero-gradient" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bg-page)] px-4">
 
-      <div className="card relative w-full max-w-sm animate-slide-up shadow-neon-md">
-        {/* Header */}
+      {/* Fondo decorativo izquierda */}
+      <div className="pointer-events-none absolute left-0 top-0 h-full w-1/2 opacity-30"
+        style={{ background: "radial-gradient(ellipse 60% 70% at 0% 50%, var(--gold), transparent)" }} />
+
+      {/* Fondo decorativo derecha */}
+      <div className="pointer-events-none absolute right-0 bottom-0 h-96 w-96 rounded-full opacity-15"
+        style={{ background: "radial-gradient(circle, var(--sage), transparent)" }} />
+
+      {/* Panel principal */}
+      <div className="relative z-10 w-full max-w-md animate-fade-up">
+
+        {/* Logo */}
         <div className="mb-8 text-center">
-          <span className="font-display text-2xl font-bold text-gradient">Neliee</span>
-          <p className="mt-2 text-sm text-gray-500">Acceso para empleadas</p>
+          <Link to="/" className="inline-block">
+            <p className="font-display text-4xl font-bold text-[var(--brown-dark)]">Neliee</p>
+            <p className="font-accent text-base italic text-[var(--bronze)]">cosmetics</p>
+          </Link>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Correo electrónico"
-            type="email"
-            name="email"
-            placeholder="tu@correo.com"
-            value={form.email}
-            onChange={handleChange}
-            required
-            autoFocus
-          />
-          <Input
-            label="Contraseña"
-            type="password"
-            name="password"
-            placeholder="••••••••"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
-
-          {error && (
-            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
-              {error}
+        {/* Card */}
+        <div className="card shadow-warm-lg border-[var(--border-strong)]">
+          <div className="mb-6">
+            <h1 className="font-display text-2xl font-bold text-[var(--brown-dark)]">
+              Bienvenida de vuelta
+            </h1>
+            <p className="mt-1 font-body text-sm text-[var(--brown-mid)]">
+              Acceso exclusivo para el equipo Neliee
             </p>
-          )}
+          </div>
 
-          <Button type="submit" isLoading={isLoading} className="mt-2 w-full justify-center">
-            Ingresar
-          </Button>
-        </form>
+          <div className="divider-gold mb-6" />
 
-        <p className="mt-6 text-center text-xs text-gray-600">
-          ¿Problemas para acceder? Contacta a la administración.
-        </p>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input
+              label="Correo electrónico"
+              type="email"
+              name="email"
+              placeholder="tu@correo.com"
+              value={form.email}
+              onChange={handleChange}
+              required
+              autoFocus
+            />
+            <Input
+              label="Contraseña"
+              type="password"
+              name="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
+
+            {error && (
+              <div className="rounded-xl border px-4 py-3" style={{ background: "rgba(126,71,49,0.08)", borderColor: "rgba(126,71,49,0.25)" }}>
+                <p className="font-body text-sm text-[var(--terracota)]">⚠ {error}</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              isLoading={isLoading}
+              className="mt-2 w-full justify-center"
+            >
+              Ingresar
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center font-body text-xs text-[var(--brown-mid)]">
+            ¿Problemas para acceder?{" "}
+            <span className="font-medium text-[var(--terracota)]">Contacta a la administración</span>
+          </p>
+        </div>
+
+        {/* Link volver */}
+        <div className="mt-6 text-center">
+          <Link to="/" className="font-body text-sm text-[var(--brown-mid)] hover:text-[var(--terracota)] transition-colors">
+            ← Volver al sitio
+          </Link>
+        </div>
       </div>
     </div>
   );

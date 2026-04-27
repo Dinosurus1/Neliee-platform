@@ -6,21 +6,25 @@
 /* ── Google Fonts ─────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Variables de diseño ──────────────────────────────────────────────────── */
+/* ── Variables de diseño (Basadas en Paleta Café/Tierra) ────────────────────── */
 @layer base {
   :root {
-    --color-bg-primary:    #080b10;
-    --color-bg-secondary:  #0f1117;
-    --color-bg-card:       #131820;
-    --color-accent:        #06b6d4;    /* cyan-500 */
-    --color-accent-dim:    rgba(6, 182, 212, 0.15);
-    --color-border:        rgba(6, 182, 212, 0.2);
-    --color-text-primary:  #e2e8f0;
-    --color-text-muted:    #64748b;
+    /* Fondos: Usando el Marrón Oscuro (#39291c) y Marrón Musgo (#5e4c3d) */
+    --color-bg-primary:    #1a140f;    /* Versión más oscura del marrón principal para legibilidad */
+    --color-bg-secondary:  #39291c;    /* Marrón Oscuro principal */
+    --color-bg-card:       #2a1f16;    /* Intermedio para elevación de cards */
+    
+    /* Acentos: Usando Terracota (#7e4731) y Dorado Suave (#efaf6b) */
+    --color-accent:        #7e4731;    /* Terracota principal */
+    --color-accent-dim:    rgba(126, 71, 49, 0.2);
+    --color-accent-light:  #efaf6b;    /* Dorado suave para hover/detalles */
+    
+    /* Bordes y Texto: Usando Tonos Crema (#f8d7b4) y Verdes (#a8af8b) */
+    --color-border:        rgba(192, 150, 107, 0.2); /* Basado en #c0966b */
+    --color-text-primary:  #f8d7b4;    /* Crema para máxima lectura */
+    --color-text-muted:    #a8af8b;    /* Verde salvia para textos secundarios */
     --radius-card:         0.75rem;
   }
-
-
 
   body {
     background-color: var(--color-bg-primary);
@@ -30,63 +34,65 @@
     overflow-x: hidden;
   }
 
-  /* Scrollbar personalizado (Chrome/Edge) */
+  /* Scrollbar personalizado */
   ::-webkit-scrollbar        { width: 6px; }
   ::-webkit-scrollbar-track  { background: var(--color-bg-primary); }
-  ::-webkit-scrollbar-thumb  { background: var(--color-accent-dim); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+  ::-webkit-scrollbar-thumb  { background: var(--color-accent); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-accent-light); }
 }
 
 /* ── Utilidades de componentes ────────────────────────────────────────────── */
 @layer components {
-  /* Card base oscura */
+  /* Card con profundidad café */
   .card {
     @apply rounded-xl border bg-[var(--color-bg-card)] p-6;
     border-color: var(--color-border);
+    box-shadow: 0 10px 30px -15px rgba(0,0,0,0.5);
   }
 
-  /* Botón primario neón */
+  /* Botón Terracota (Elegante y fuerte) */
   .btn-primary {
     @apply relative inline-flex items-center gap-2 rounded-lg px-5 py-2.5
-           font-semibold text-sm text-gray-950 bg-cyan-400
+           font-semibold text-sm text-white bg-[#7e4731]
            transition-all duration-200
-           hover:bg-cyan-300 hover:shadow-neon-sm
-           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+           hover:bg-[#96563d] hover:shadow-[0_0_15px_rgba(126,71,49,0.4)]
+           active:scale-95 disabled:opacity-50;
   }
 
-  /* Botón secundario con borde */
+  /* Botón Outlined Dorado/Bronce */
   .btn-outline {
     @apply inline-flex items-center gap-2 rounded-lg border px-5 py-2.5
-           font-semibold text-sm text-cyan-400
+           font-semibold text-sm text-[#efaf6b]
            transition-all duration-200
-           hover:bg-cyan-500/10 hover:border-cyan-400
+           hover:bg-[#efaf6b]/10 hover:border-[#efaf6b]
            active:scale-95 disabled:opacity-50;
     border-color: var(--color-border);
   }
 
-  /* Input oscuro */
+  /* Input con fondo de café profundo */
   .input {
-    @apply w-full rounded-lg border bg-gray-900 px-4 py-2.5
-           text-sm text-gray-100 placeholder-gray-600
+    @apply w-full rounded-lg border bg-[#1a140f] px-4 py-2.5
+           text-sm text-[#f8d7b4] placeholder-[#5e4c3d]
            outline-none transition-all duration-200
-           focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30;
+           focus:border-[#efaf6b] focus:ring-1 focus:ring-[#efaf6b]/30;
     border-color: var(--color-border);
   }
 
-  /* Sección con textura de puntos */
+  /* Sección con textura orgánica (Puntos en tono Bronce) */
   .section-dots {
-    background-image: radial-gradient(circle, rgba(6,182,212,0.12) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(192, 150, 107, 0.1) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 
-  /* Texto con gradiente neón */
+  /* Texto con gradiente (De Terracota a Dorado Suave) */
   .text-gradient {
-    @apply bg-gradient-to-r from-cyan-300 to-cyan-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#7e4731] via-[#c0966b] to-[#efaf6b] bg-clip-text text-transparent;
   }
 
-  /* Línea separadora con glow */
+  /* Línea separadora con glow cálido */
   .divider-neon {
     @apply h-px w-full;
-    background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+    background: linear-gradient(90deg, transparent, #c0966b, transparent);
+    opacity: 0.5;
   }
 }

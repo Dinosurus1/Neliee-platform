@@ -9,15 +9,13 @@ import Button from "../../components/ui/Button";
 import Spinner from "../../components/ui/Spinner";
 
 export default function CoursePage() {
-  const { courseId } = useParams(); // courseId = enrollmentId
+  const { courseId } = useParams();
   const { data: enrollments, isLoading } = useApi(getMyEnrollments);
   const [marking, setMarking] = useState(false);
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Spinner size="lg" />
-      </div>
+      <div className="flex h-64 items-center justify-center"><Spinner size="lg" /></div>
     );
   }
 
@@ -26,11 +24,9 @@ export default function CoursePage() {
   if (!enrollment) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-16 text-center">
-        <span className="text-4xl">🔒</span>
-        <p className="text-gray-400">Capacitación no encontrada o sin acceso.</p>
-        <Link to="/dashboard" className="btn-outline">
-          ← Volver al dashboard
-        </Link>
+        <span className="text-5xl">🔒</span>
+        <p className="font-body text-[var(--brown-mid)]">Capacitación no encontrada o sin acceso.</p>
+        <Link to="/dashboard" className="btn-outline">← Volver al dashboard</Link>
       </div>
     );
   }
@@ -49,18 +45,15 @@ export default function CoursePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)]">
-      {/* Header de navegación */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-6 py-4">
+    <div className="min-h-screen" style={{ background: "var(--bg-page)" }}>
+      {/* Breadcrumb */}
+      <div className="border-b bg-white px-6 py-4" style={{ borderColor: "var(--border-warm)" }}>
         <div className="mx-auto flex max-w-4xl items-center gap-3">
-          <Link
-            to="/dashboard"
-            className="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
-          >
+          <Link to="/dashboard" className="font-body text-sm text-[var(--brown-mid)] hover:text-[var(--terracota)] transition-colors">
             ← Mis capacitaciones
           </Link>
-          <span className="text-gray-700">/</span>
-          <span className="text-sm text-gray-300 line-clamp-1">{course.title}</span>
+          <span className="text-[var(--border-warm)]">/</span>
+          <span className="font-body text-sm text-[var(--brown-dark)] line-clamp-1">{course.title}</span>
         </div>
       </div>
 
@@ -68,11 +61,9 @@ export default function CoursePage() {
         {/* Título y estado */}
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold text-gray-100">
-              {course.title}
-            </h1>
+            <h1 className="font-display text-2xl font-bold text-[var(--brown-dark)]">{course.title}</h1>
             {course.description && (
-              <p className="mt-2 text-sm text-gray-500 max-w-xl">{course.description}</p>
+              <p className="mt-2 font-body text-sm text-[var(--brown-mid)] max-w-xl">{course.description}</p>
             )}
           </div>
           <Badge variant={completed ? "green" : "gray"}>
@@ -80,30 +71,27 @@ export default function CoursePage() {
           </Badge>
         </div>
 
-        <div className="divider-neon mb-8" />
+        <div className="divider-gold mb-8" />
 
         {/* Reproductor */}
         <GDrivePlayer driveId={course.gdrive_video_id} title={course.title} />
 
-        {/* Acción de completar */}
-        {!completed && (
+        {/* Acción */}
+        {!completed ? (
           <div className="mt-8 flex items-center justify-center">
-            <Button
-              onClick={handleComplete}
-              isLoading={marking}
-              className="px-8"
-            >
+            <Button onClick={handleComplete} isLoading={marking} className="px-10">
               ✓ Marcar como completada
             </Button>
           </div>
-        )}
-
-        {completed && (
-          <div className="mt-8 card flex items-center gap-3 bg-green-500/5 border-green-500/20">
-            <span className="text-2xl">🎉</span>
+        ) : (
+          <div className="mt-8 rounded-2xl border p-5 flex items-center gap-4"
+            style={{ background: "rgba(75,93,5,0.06)", borderColor: "rgba(75,93,5,0.2)" }}>
+            <span className="text-3xl">🎉</span>
             <div>
-              <p className="font-semibold text-green-400">¡Capacitación completada!</p>
-              <p className="text-xs text-gray-500">Puedes volver a verla cuando quieras.</p>
+              <p className="font-display text-base font-semibold" style={{ color: "var(--olive)" }}>
+                ¡Capacitación completada!
+              </p>
+              <p className="font-body text-sm text-[var(--brown-mid)]">Puedes volver a verla cuando quieras.</p>
             </div>
           </div>
         )}
