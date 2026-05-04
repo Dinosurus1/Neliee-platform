@@ -19,6 +19,7 @@ from app.core.dependencies import get_current_user, get_db, require_admin
 from app.models.models import Enrollment, User
 from app.schemas.enrollment import EnrollmentCreate, EnrollmentOut
 
+
 router = APIRouter()
 
 

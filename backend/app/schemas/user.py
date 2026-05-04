@@ -39,37 +39,5 @@ class UserOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# app/schemas/course.py
-# ─────────────────────────────────────────────────────────────────────────────
-# (Incluido aquí para brevedad; en el proyecto va en su propio archivo)
-
-import uuid as _uuid
-from pydantic import BaseModel as _BaseModel
 
 
-class CourseCreate(_BaseModel):
-    title: str
-    description: str | None = None
-    gdrive_video_id: str        # Solo el ID, no la URL completa
-    order: int = 0
-    is_published: bool = False
-
-
-class CourseUpdate(_BaseModel):
-    title: str | None = None
-    description: str | None = None
-    gdrive_video_id: str | None = None
-    order: int | None = None
-    is_published: bool | None = None
-
-
-class CourseOut(_BaseModel):
-    id: _uuid.UUID
-    title: str
-    description: str | None
-    gdrive_video_id: str
-    order: int
-    is_published: bool
-
-    model_config = {"from_attributes": True}
