@@ -29,7 +29,12 @@ const ManageCourses    = lazy(() => import("./pages/admin/ManageCourses"));
 
 const DashboardLayout  = lazy(() => import("./components/layout/DashboardLayout"));
 const AdminLayout      = lazy(() => import("./components/layout/AdminLayout"));
-
+// imports para el dashboard ERP (solo admin)
+const DashboardERP     = lazy(() => import("./components/Dashboard"));
+const ClientesPage     = lazy(() => import("./components/ClientesPage"));
+const ProductosPage    = lazy(() => import("./components/ProductosPage"));
+const RendimientosPage = lazy(() => import("./components/RendimientosPage"));
+const ExportarPage     = lazy(() => import("./components/Exportar"));
 
 // ── Guards ─────────────────────────────────────────────────────────────────
 
@@ -101,6 +106,12 @@ export default function App() {
               <Route path="/admin"            element={<AdminDashboard />} />
               <Route path="/admin/usuarios"   element={<ManageUsers />} />
               <Route path="/admin/cursos"     element={<ManageCourses />} />
+              {/* Rutas adicionales para el dashboard ERP */}
+              <Route path="/admin/panel"         element={<DashboardERP />} />
+              <Route path="/admin/clientes"      element={<ClientesPage />} />
+              <Route path="/admin/productos"     element={<ProductosPage />} />
+              <Route path="/admin/rendimientos"  element={<RendimientosPage />} />
+              <Route path="/admin/exportar"      element={<ExportarPage />} />
             </Route>
           </Route>
 

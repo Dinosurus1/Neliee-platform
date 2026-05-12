@@ -6,6 +6,12 @@ const navItems = [
   { to: "/admin",           label: "Dashboard",      icon: "⊞" },
   { to: "/admin/usuarios",  label: "Empleadas",      icon: "👥" },
   { to: "/admin/cursos",    label: "Capacitaciones", icon: "🎓" },
+  // separador visual
+  { to: "/admin/panel",        label: "Panel ERP",      icon: "⚡" },
+  { to: "/admin/clientes",     label: "Clientes",       icon: "👥" },
+  { to: "/admin/productos",    label: "Productos",      icon: "🖨️" },
+  { to: "/admin/rendimientos", label: "Rendimientos",   icon: "📊" },
+  { to: "/admin/exportar",     label: "Exportar",       icon: "📦" },
 ];
  
 export default function AdminLayout() {
