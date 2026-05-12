@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after {
+  font-family: 'Outfit', sans-serif;
+}
+
+:root {
+  --sidebar-w: 256px;
+  --accent: #D97706;
+  --accent-light: #FEF3C7;
+  --navy: #0F172A;
+  --card-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: #F1F4F8;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ──────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* ── Sidebar nav item ───────────── */
+.nav-item {
+  @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer w-full text-left;
+  color: rgba(255,255,255,0.55);
+}
+.nav-item:hover {
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.9);
+}
+.nav-item.active {
+  background: rgba(217,119,6,0.18);
+  color: #FBBF24;
+  border-left: 2px solid #D97706;
+  padding-left: calc(1rem - 2px);
+}
+
+/* ── Card ───────────────────────── */
+.card {
+  @apply bg-white rounded-2xl;
+  box-shadow: var(--card-shadow);
+}
+
+/* ── Status badge ───────────────── */
+.badge {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+}
+.badge::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+.badge-pendiente   { @apply bg-amber-50  text-amber-700; }
+.badge-en-proceso  { @apply bg-blue-50   text-blue-700; }
+.badge-listo       { @apply bg-emerald-50 text-emerald-700; }
+.badge-entregado   { @apply bg-slate-100 text-slate-500; }
+.badge-cancelado   { @apply bg-red-50    text-red-600; }
+
+/* ── Input base ─────────────────── */
+.input {
+  @apply w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800
+         placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400
+         transition-all duration-150;
+}
+
+.btn-primary {
+  @apply bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-semibold text-sm
+         px-5 py-2.5 rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-outline {
+  @apply bg-transparent hover:bg-slate-50 text-slate-700 font-semibold text-sm
+         px-5 py-2.5 rounded-xl border border-slate-200 transition-all duration-150;
+}
+
+/* ── Table ──────────────────────── */
+.data-table { @apply w-full text-sm; }
+.data-table thead th {
+  @apply py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-50/80 border-b border-slate-100;
+}
+.data-table tbody tr {
+  @apply border-b border-slate-50 hover:bg-amber-50/40 transition-colors duration-100;
+}
+.data-table tbody td { @apply py-3.5 px-4 text-slate-700; }
+
+/* ── Stat card accent bars ──────── */
+.stat-bar-blue   { @apply border-l-4 border-blue-500; }
+.stat-bar-amber  { @apply border-l-4 border-amber-500; }
+.stat-bar-emerald{ @apply border-l-4 border-emerald-500; }
+
+/* ── Modal backdrop ─────────────── */
+.modal-backdrop {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background: rgba(15,23,42,0.55);
+  backdrop-filter: blur(4px);
+  animation: fadeIn .15s ease;
+}
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+.modal-box {
+  @apply bg-white rounded-2xl shadow-2xl flex flex-col;
+  max-height: 92vh;
+  animation: slideUp .2s ease;
+}
+@keyframes slideUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+
+/* ── Form tab toggle ────────────── */
+.tab-pill {
+  @apply flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200;
+}
+.tab-pill.active {
+  @apply bg-amber-500 text-white shadow-sm;
+}
+.tab-pill:not(.active) {
+  @apply text-slate-500 hover:text-slate-700;
+}

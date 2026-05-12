@@ -5,10 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    // Proxy para evitar CORS en desarrollo
+    allowedHosts: [
+      "congressional-legs-metabolism-ballot.trycloudflare.com",
+      "localhost",
+    ],
     proxy: {
       "/api": {
-        target: "http://localhost:8002",
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
     },
