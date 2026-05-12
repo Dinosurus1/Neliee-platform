@@ -100,9 +100,9 @@ class Course(Base):
         return f"<Course '{self.title}'>"
 
 
-# ---------------------------------------------------------------------------
+
 # Enrollment  (tabla intermedia User ↔ Course con progreso)
-# ---------------------------------------------------------------------------
+
 class Enrollment(Base):
     """
     Registra qué empleada tiene acceso a qué capacitación.

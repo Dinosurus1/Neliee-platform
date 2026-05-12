@@ -31,7 +31,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-page)" }}>
       {/* Header */}
-      <div className="border-b bg-white px-6 py-8" style={{ borderColor: "var(--border-warm)" }}>
+      <div className="border-b bg-black px-6 py-8" style={{ borderColor: "var(--border-warm)" }}>
         <div className="mx-auto max-w-5xl">
           <h1 className="font-display text-2xl font-bold text-[var(--brown-dark)]">
             Mis Capacitaciones

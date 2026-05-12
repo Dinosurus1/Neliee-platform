@@ -47,7 +47,7 @@ export default function CoursePage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-page)" }}>
       {/* Breadcrumb */}
-      <div className="border-b bg-white px-6 py-4" style={{ borderColor: "var(--border-warm)" }}>
+      <div className="border-b bg-black px-6 py-4" style={{ borderColor: "var(--border-warm)" }}>
         <div className="mx-auto flex max-w-4xl items-center gap-3">
           <Link to="/dashboard" className="font-body text-sm text-[var(--brown-mid)] hover:text-[var(--terracota)] transition-colors">
             ← Mis capacitaciones
