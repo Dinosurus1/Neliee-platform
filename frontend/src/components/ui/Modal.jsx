@@ -24,20 +24,22 @@ export default function Modal({ isOpen, onClose, title, children }) {
       />
 
       {/* Panel */}
-      <div className="card relative z-10 w-full max-w-md animate-slide-up shadow-neon-md">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold text-gray-100">{title}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-gray-200 transition-colors"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
+      <div className="relative z-10 w-full max-w-md animate-slide-up shadow-neon-md overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+        <div className="px-6 py-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold text-gray-100">{title}</h2>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="divider-neon my-4" />
+          {children}
         </div>
-        <div className="divider-neon my-4" />
-        {children}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import api from '../../../../api/dashboardService';
+import '../styles/main.css';
 
 const CATEGORIAS = ['offset', 'digital', 'gran formato'];
 
@@ -117,14 +118,14 @@ const ModalNuevaMedida = ({ productoId, onCerrar, onAgregada }) => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onCerrar()}
     >
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full mx-4" style={{ maxWidth: 420 }}>
-        <h3 className="font-bold text-slate-800 mb-4">Nueva medida / formato</h3>
+      <div className="rounded-2xl shadow-2xl p-6 w-full mx-4 overflow-y-auto" style={{ maxWidth: 420, background: '#1a140f', border: '1px solid rgba(192,150,107,0.16)' }}>
+        <h3 className="font-bold mb-4" style={{ color: '#f8d7b4' }}>Nueva medida / formato</h3>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c7a17d' }}>
               Etiqueta <span className="text-red-400">*</span>
             </label>
             <input
@@ -137,7 +138,7 @@ const ModalNuevaMedida = ({ productoId, onCerrar, onAgregada }) => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c7a17d' }}>
                 Ancho (cm)
               </label>
               <input
@@ -148,7 +149,7 @@ const ModalNuevaMedida = ({ productoId, onCerrar, onAgregada }) => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c7a17d' }}>
                 Alto (cm)
               </label>
               <input
@@ -160,7 +161,7 @@ const ModalNuevaMedida = ({ productoId, onCerrar, onAgregada }) => {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c7a17d' }}>
               Precio base ($)
             </label>
             <input
@@ -172,7 +173,7 @@ const ModalNuevaMedida = ({ productoId, onCerrar, onAgregada }) => {
             />
           </div>
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>
+            <p className="text-xs bg-red-50 rounded-xl px-3 py-2.5" style={{ color: '#F87171', background: 'rgba(248,113,113,0.1)' }}>{error}</p>
           )}
           <div className="flex gap-2 pt-1">
             <button onClick={onCerrar} className="btn-outline flex-1">Cancelar</button>
@@ -222,13 +223,13 @@ const ModalProductoForm = ({ producto, onCerrar, onGuardado }) => {
       style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onCerrar()}
     >
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full mx-4" style={{ maxWidth: 440 }}>
-        <h3 className="font-bold text-slate-800 mb-4">
+      <div className="rounded-2xl shadow-2xl p-6 w-full mx-4" style={{ maxWidth: 440, background: '#1a140f', border: '1px solid rgba(192,150,107,0.16)' }}>
+        <h3 className="font-bold mb-4" style={{ color: '#f8d7b4' }}>
           {esEdicion ? `Editar: ${producto.nombre}` : 'Nuevo Producto'}
         </h3>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c7a17d' }}>
               Nombre <span className="text-red-400">*</span>
             </label>
             <input
@@ -240,7 +241,7 @@ const ModalProductoForm = ({ producto, onCerrar, onGuardado }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c7a17d' }}>
               Descripción
             </label>
             <input
@@ -251,7 +252,7 @@ const ModalProductoForm = ({ producto, onCerrar, onGuardado }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#c7a17d' }}>
               Categoría
             </label>
             <div className="flex gap-2">
@@ -272,7 +273,7 @@ const ModalProductoForm = ({ producto, onCerrar, onGuardado }) => {
             </div>
           </div>
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>
+            <p className="text-xs bg-red-50 rounded-xl px-3 py-2.5" style={{ color: '#F87171', background: 'rgba(248,113,113,0.1)' }}>{error}</p>
           )}
           <div className="flex gap-2 pt-1">
             <button onClick={onCerrar} className="btn-outline flex-1">Cancelar</button>
@@ -340,13 +341,13 @@ const PanelProducto = ({ producto, onPrecioActualizado, onMedidaAgregada, onMedi
       </div>
 
       {/* Tabla de medidas con precios */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="card overflow-hidden">
         <div
           className="flex items-center justify-between px-5 py-3.5"
-          style={{ borderBottom: '1px solid #F1F5F9' }}
+          style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}
         >
           <div>
-            <p className="font-bold text-slate-700 text-sm">Medidas y Precios</p>
+            <p className="font-bold text-sm" style={{ color: '#f8d7b4' }}>Medidas y Precios</p>
             <p className="text-xs text-slate-400 mt-0.5">
               Clic en el precio para editar · Enter para guardar · Esc para cancelar
             </p>
@@ -361,9 +362,9 @@ const PanelProducto = ({ producto, onPrecioActualizado, onMedidaAgregada, onMedi
         </div>
 
         {producto.medidas?.length === 0 ? (
-          <div className="flex flex-col items-center py-10 text-slate-300">
+          <div className="flex flex-col items-center py-10" style={{ color: '#9f8568' }}>
             <span className="text-4xl mb-2">📏</span>
-            <p className="text-sm text-slate-400">Sin medidas registradas</p>
+            <p className="text-sm" style={{ color: '#6b5b47' }}>Sin medidas registradas</p>
             <button
               onClick={() => setModalMedida(true)}
               className="mt-3 text-xs font-semibold text-amber-600 hover:text-amber-700 transition"
@@ -375,14 +376,14 @@ const PanelProducto = ({ producto, onPrecioActualizado, onMedidaAgregada, onMedi
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
-                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <tr style={{ background: '#2a1f16', borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider" style={{ color: '#c7a17d' }}>
                     Medida / Formato
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider" style={{ color: '#c7a17d' }}>
                     Dimensiones
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider" style={{ color: '#c7a17d' }}>
                     Precio Base
                   </th>
                   <th className="py-3 px-4" />
@@ -393,15 +394,15 @@ const PanelProducto = ({ producto, onPrecioActualizado, onMedidaAgregada, onMedi
                   <tr
                     key={m.id}
                     className="group transition-colors"
-                    style={{ borderBottom: '1px solid #F8FAFC' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#FFFBEB'}
+                    style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(217,119,6,0.1)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td className="py-3 px-4 font-medium text-slate-700">{m.etiqueta}</td>
-                    <td className="py-3 px-4 text-slate-400 text-xs">
+                    <td className="py-3 px-4 font-medium" style={{ color: '#f8d7b4' }}>{m.etiqueta}</td>
+                    <td className="py-3 px-4 text-xs" style={{ color: '#9f8568' }}>
                       {m.ancho_cm && m.alto_cm
                         ? `${m.ancho_cm} × ${m.alto_cm} cm`
-                        : <span className="italic text-slate-300">—</span>
+                        : <span className="italic" style={{ color: '#6b5b47' }}>—</span>
                       }
                     </td>
                     <td className="py-3 px-4">
@@ -563,13 +564,13 @@ const ProductosPage = () => {
 
   return (
     <div
-      className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+      className="flex flex-col card overflow-hidden"
       style={{ height: 'calc(100vh - 5rem)' }}
     >
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div
         className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-        style={{ borderBottom: '1px solid #F1F5F9' }}
+        style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}
       >
         <div className="flex items-center gap-3">
           <div
@@ -579,8 +580,8 @@ const ProductosPage = () => {
             🖨️
           </div>
           <div>
-            <h2 className="font-bold text-slate-800 text-lg leading-tight">Catálogo de Productos</h2>
-            <p className="text-xs text-slate-400">{productos.length} productos · Clic en el precio para editar</p>
+            <h2 className="font-bold text-lg leading-tight" style={{ color: '#f8d7b4' }}>Catálogo de Productos</h2>
+            <p className="text-xs" style={{ color: '#9f8568' }}>{productos.length} productos · Clic en el precio para editar</p>
           </div>
         </div>
         <button
@@ -595,7 +596,7 @@ const ProductosPage = () => {
         {/* ── Panel izquierdo: lista ─────────────────────────────────── */}
         <div
           className="flex flex-col flex-shrink-0 overflow-hidden"
-          style={{ width: 300, borderRight: '1px solid #F1F5F9' }}
+          style={{ width: 300, borderRight: '1px solid rgba(192,150,107,0.16)' }}
         >
           {/* Búsqueda */}
           <div className="px-3 pt-3 pb-2">
@@ -612,7 +613,7 @@ const ProductosPage = () => {
           {/* Filtros de categoría */}
           <div
             className="px-3 pb-2 flex gap-1 flex-wrap"
-            style={{ borderBottom: '1px solid #F1F5F9' }}
+            style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}
           >
             {[{ value: 'todas', label: 'Todas', emoji: '📋' },
               ...CATEGORIAS.map(c => ({ value: c, label: c, emoji: CAT_CONFIG[c].emoji }))
@@ -622,8 +623,8 @@ const ProductosPage = () => {
                 onClick={() => setCategoriaFiltro(opt.value)}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all"
                 style={categoriaFiltro === opt.value
-                  ? { background: '#0F172A', color: '#fff' }
-                  : { background: '#F1F5F9', color: '#64748B' }
+                  ? { background: '#D97706', color: '#fff' }
+                  : { background: 'rgba(192,150,107,0.1)', color: '#c7a17d' }
                 }
               >
                 {opt.emoji} {opt.label}
@@ -631,7 +632,7 @@ const ProductosPage = () => {
                   className="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full"
                   style={categoriaFiltro === opt.value
                     ? { background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }
-                    : { background: '#E2E8F0', color: '#64748B' }
+                    : { background: 'rgba(192,150,107,0.2)', color: '#9f8568' }
                   }
                 >
                   {conteo[opt.value] ?? 0}
@@ -649,9 +650,9 @@ const ProductosPage = () => {
                 ))}
               </div>
             ) : productosFiltrados.length === 0 ? (
-              <div className="flex flex-col items-center py-12 text-slate-300">
+              <div className="flex flex-col items-center py-12" style={{ color: '#9f8568' }}>
                 <span className="text-4xl mb-2">🔍</span>
-                <p className="text-sm text-slate-400">Sin resultados</p>
+                <p className="text-sm" style={{ color: '#6b5b47' }}>Sin resultados</p>
               </div>
             ) : (
               productosFiltrados.map(p => {
@@ -681,7 +682,8 @@ const ProductosPage = () => {
                           </button>
                           <button
                             onClick={() => setEliminandoId(null)}
-                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 bg-white"
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                            style={{ color: '#9f8568', border: '1px solid rgba(192,150,107,0.24)', background: '#1a140f' }}
                           >
                             Cancelar
                           </button>
@@ -692,9 +694,9 @@ const ProductosPage = () => {
                         onClick={() => seleccionarProducto(p)}
                         className="w-full text-left px-4 py-3.5 transition-all relative"
                         style={{
-                          background:   estaActivo ? '#FFFBEB' : 'transparent',
+                          background:   estaActivo ? 'rgba(217,119,6,0.1)' : 'transparent',
                           borderLeft:   `3px solid ${estaActivo ? '#D97706' : 'transparent'}`,
-                          borderBottom: '1px solid #F8FAFC',
+                          borderBottom: '1px solid rgba(192,150,107,0.16)',
                         }}
                       >
                         <div className="flex items-center justify-between">
@@ -703,13 +705,13 @@ const ProductosPage = () => {
                               className="flex items-center justify-center rounded-xl flex-shrink-0 text-base"
                               style={{
                                 width: 34, height: 34,
-                                background: estaActivo ? cfg.bg : '#F8FAFC',
+                                background: estaActivo ? cfg.bg : 'rgba(192,150,107,0.1)',
                               }}
                             >
                               {cfg.emoji}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-semibold text-slate-700 text-sm truncate leading-tight">
+                              <p className="font-semibold text-sm truncate leading-tight" style={{ color: '#f8d7b4' }}>
                                 {p.nombre}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5">
@@ -719,7 +721,7 @@ const ProductosPage = () => {
                                 >
                                   {p.categoria}
                                 </span>
-                                <span className="text-[10px] text-slate-400">
+                                <span className="text-[10px]" style={{ color: '#9f8568' }}>
                                   {conPrecio}/{totalMedidas} con precio
                                 </span>
                               </div>
@@ -742,9 +744,9 @@ const ProductosPage = () => {
         </div>
 
         {/* ── Panel derecho: detalle ─────────────────────────────────── */}
-        <div className="flex-1 overflow-hidden p-6 bg-slate-50">
+        <div className="flex-1 overflow-hidden p-6" style={{ background: '#1a140f' }}>
           {!productoActivo ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-300">
+            <div className="flex flex-col items-center justify-center h-full" style={{ color: '#9f8568' }}>
               <span className="text-6xl mb-3">👈</span>
               <p className="text-base font-medium text-slate-400">Seleccioná un producto</p>
               <p className="text-sm text-slate-300 mt-1">Para ver y editar sus medidas y precios</p>

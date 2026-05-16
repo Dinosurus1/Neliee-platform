@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import '../styles/main.css';
 import api from '../../../../api/dashboardService';
 import FormOrden from './FormOrden';
 import FormCliente from './FormCliente';
@@ -110,16 +111,16 @@ const Dashboard = () => {
             </p>
             {cargandoTop ? (
               <div className="space-y-2 pt-1">
-                <div className="h-6 bg-slate-100 rounded-lg w-3/4 animate-pulse" />
-                <div className="h-3 bg-slate-100 rounded-lg w-1/2 animate-pulse" />
+                <div className="h-6 bg-slate-700 rounded-lg w-3/4 animate-pulse" />
+                <div className="h-3 bg-slate-700 rounded-lg w-1/2 animate-pulse" />
               </div>
             ) : clienteTop ? (
               <>
-                <p className="text-xl font-bold text-slate-800">
+                <p className="text-xl font-bold text-[#f8d7b4]">
                   {clienteTop.nombre_cliente}
                   {clienteTop.es_cliente_regular && <span className="ml-1.5">⭐</span>}
                 </p>
-                <p className="text-sm text-slate-400 mt-0.5">
+                <p className="text-sm text-slate-300 mt-0.5">
                   {clienteTop.total_ordenes} órdenes en total
                 </p>
               </>
@@ -134,13 +135,13 @@ const Dashboard = () => {
             </p>
             {cargandoTop ? (
               <div className="space-y-2 pt-1">
-                <div className="h-6 bg-slate-100 rounded-lg w-3/4 animate-pulse" />
-                <div className="h-3 bg-slate-100 rounded-lg w-1/2 animate-pulse" />
+                <div className="h-6 bg-slate-700 rounded-lg w-3/4 animate-pulse" />
+                <div className="h-3 bg-slate-700 rounded-lg w-1/2 animate-pulse" />
               </div>
             ) : productoTop ? (
               <>
-                <p className="text-xl font-bold text-slate-800">{productoTop.nombre_producto}</p>
-                <p className="text-sm text-slate-400 mt-0.5">
+                <p className="text-xl font-bold text-[#f8d7b4]">{productoTop.nombre_producto}</p>
+                <p className="text-sm text-slate-300 mt-0.5">
                   {productoTop.total_ordenes} órdenes
                   {productoTop.categoria && ` · ${productoTop.categoria}`}
                 </p>
@@ -179,7 +180,7 @@ const Dashboard = () => {
             <div className="card p-5">
               {formTab === 'orden' ? (
                 <>
-                  <h2 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+                  <h2 className="font-bold text-[#f8d7b4] text-base mb-4 flex items-center gap-2">
                     <span style={{ width:28, height:28, background:'#FEF3C7', color:'#D97706',
                                    display:'flex', alignItems:'center', justifyContent:'center',
                                    borderRadius:8, fontSize:14 }}>📋</span>
@@ -194,7 +195,7 @@ const Dashboard = () => {
                 </>
               ) : (
                 <>
-                  <h2 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
+                  <h2 className="font-bold text-[#f8d7b4] text-base mb-4 flex items-center gap-2">
                     <span style={{ width:28, height:28, background:'#EFF6FF', color:'#3B82F6',
                                    display:'flex', alignItems:'center', justifyContent:'center',
                                    borderRadius:8, fontSize:14 }}>👤</span>
@@ -210,9 +211,9 @@ const Dashboard = () => {
           <div className="lg:col-span-2 card overflow-hidden">
             <div
               className="flex items-center justify-between px-5 py-4"
-              style={{ borderBottom: '1px solid #F1F5F9' }}
+              style={{ borderBottom: '1px solid rgba(192, 150, 107, 0.2)' }}
             >
-              <h2 className="font-bold text-slate-800 text-base flex items-center gap-2">
+              <h2 className="font-bold text-[#f8d7b4] text-base flex items-center gap-2">
                 <span style={{ color: '#D97706' }}>🏭</span>
                 Órdenes en producción
               </h2>

@@ -41,20 +41,23 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid #F1F5F9' }}
+          style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}
         >
           <div className="flex items-center gap-3">
             <div
               className="flex items-center justify-center rounded-xl text-xl"
-              style={{ width: 40, height: 40, background: '#FEF3C7' }}
+              style={{ width: 40, height: 40, background: '#D97706', color: '#fff' }}
             >
               🖨️
             </div>
-            <h2 className="font-bold text-slate-800 text-lg">Catálogo de Productos</h2>
+            <h2 className="font-bold text-[#f8d7b4] text-lg">Catálogo de Productos</h2>
           </div>
           <button
             onClick={onCerrar}
-            className="p-2 rounded-xl hover:bg-slate-100 transition text-slate-400 hover:text-slate-700"
+            className="p-2 rounded-xl transition"
+            style={{ color: '#d6c0a5' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(192,150,107,0.16)'; e.currentTarget.style.color = '#f8d7b4'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#d6c0a5'; }}
           >
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 4l10 10M14 4L4 14" strokeLinecap="round" />
@@ -65,7 +68,7 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
         {/* Search + Tabs */}
         <div
           className="px-6 py-3 flex flex-col sm:flex-row gap-3"
-          style={{ borderBottom: '1px solid #F1F5F9' }}
+          style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}
         >
           <input
             type="text"
@@ -83,8 +86,8 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
                 onClick={() => setCategoria(cat)}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all"
                 style={categoriaActiva === cat
-                  ? { background: '#0F172A', color: '#fff' }
-                  : { background: '#F1F5F9', color: '#64748B' }
+                  ? { background: '#D97706', color: '#fff' }
+                  : { background: '#2a1f16', color: '#c7a17d', border: '1px solid rgba(192,150,107,0.18)' }
                 }
               >
                 {cat === 'todas' ? 'Todas' : cat}
@@ -101,7 +104,10 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
             <div>
               <button
                 onClick={() => setProducto(null)}
-                className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 mb-5 transition"
+                className="flex items-center gap-1.5 text-sm font-medium mb-5 transition"
+                style={{ color: '#d6c0a5' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#f8d7b4'}
+                onMouseLeave={e => e.currentTarget.style.color = '#d6c0a5'}
               >
                 ← Volver al catálogo
               </button>
@@ -109,7 +115,7 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
               <div className="flex gap-5 mb-6">
                 <div
                   className="flex items-center justify-center rounded-2xl overflow-hidden flex-shrink-0"
-                  style={{ width: 100, height: 100, background: '#F1F5F9' }}
+                  style={{ width: 100, height: 100, background: '#241b13' }}
                 >
                   {resolverImagen(productoActivo.imagen_url) ? (
                     <img src={resolverImagen(productoActivo.imagen_url)} alt={productoActivo.nombre}
@@ -122,19 +128,19 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
                   {productoActivo.categoria && (
                     <span
                       className="text-xs font-semibold px-2.5 py-1 rounded-full capitalize"
-                      style={CAT_COLORS[productoActivo.categoria] || { bg: '#F1F5F9', text: '#64748B' }}
+                      style={CAT_COLORS[productoActivo.categoria] || { bg: '#241b13', text: '#c7a17d' }}
                     >
                       {productoActivo.categoria}
                     </span>
                   )}
-                  <h3 className="font-bold text-slate-800 text-xl mt-2">{productoActivo.nombre}</h3>
+                  <h3 className="font-bold text-[#f8d7b4] text-xl mt-2">{productoActivo.nombre}</h3>
                   {productoActivo.descripcion && (
-                    <p className="text-slate-500 text-sm mt-1">{productoActivo.descripcion}</p>
+                    <p className="text-[#c7a17d] text-sm mt-1">{productoActivo.descripcion}</p>
                   )}
                 </div>
               </div>
 
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#c7a17d] mb-3">
                 Seleccioná una medida
               </p>
 
@@ -145,19 +151,19 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
                       key={m.id}
                       onClick={() => elegirMedida(m)}
                       className="rounded-2xl p-4 text-left transition-all hover:scale-[1.02] group"
-                      style={{ border: '1.5px solid #E2E8F0', background: '#FAFAFA' }}
+                      style={{ border: '1.5px solid rgba(192,150,107,0.16)', background: '#241b13' }}
                       onMouseEnter={e => {
                         e.currentTarget.style.borderColor = '#D97706';
-                        e.currentTarget.style.background = '#FFFBEB';
+                        e.currentTarget.style.background = 'rgba(253,230,138,0.18)';
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.borderColor = '#E2E8F0';
-                        e.currentTarget.style.background = '#FAFAFA';
+                        e.currentTarget.style.borderColor = 'rgba(192,150,107,0.16)';
+                        e.currentTarget.style.background = '#241b13';
                       }}
                     >
-                      <p className="font-semibold text-slate-700 text-sm">{m.etiqueta}</p>
+                      <p className="font-semibold text-[#f8d7b4] text-sm">{m.etiqueta}</p>
                       {(m.ancho_cm || m.alto_cm) && (
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-xs text-[#c7a17d] mt-1">
                           {m.ancho_cm} × {m.alto_cm} cm
                         </p>
                       )}
@@ -170,13 +176,13 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-400 mb-3">Sin medidas registradas.</p>
+                <p className="text-sm" style={{ color: '#c7a17d', marginBottom: '0.75rem' }}>Sin medidas registradas.</p>
               )}
 
               <button
                 onClick={() => { onSeleccionar({ producto: productoActivo, medida: null }); onCerrar(); }}
-                className="mt-4 w-full py-3 rounded-2xl text-sm font-medium text-slate-500 transition-all"
-                style={{ border: '1.5px dashed #CBD5E1' }}
+                className="mt-4 w-full py-3 rounded-2xl text-sm font-medium transition-all"
+                style={{ border: '1.5px dashed rgba(239,175,107,0.4)', color: '#f8d7b4', background: '#241b13' }}
               >
                 Continuar sin especificar medida
               </button>
@@ -186,27 +192,27 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
             /* ── Products grid ──────────────────── */
             <>
               {filtrados.length === 0 ? (
-                <div className="flex flex-col items-center py-16 text-slate-300">
+                <div className="flex flex-col items-center py-16 text-[#c7a17d]">
                   <span className="text-5xl mb-3">🔍</span>
-                  <p className="text-sm font-medium text-slate-400">Sin resultados para "{busqueda}"</p>
+                  <p className="text-sm font-medium text-[#d6c0a5]">Sin resultados para "{busqueda}"</p>
                 </div>
               ) : (
                 <>
-                  <p className="text-xs text-slate-400 mb-4 font-medium">
+                  <p className="text-xs text-[#c7a17d] mb-4 font-medium">
                     {filtrados.length} producto{filtrados.length !== 1 ? 's' : ''}
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {filtrados.map(p => {
-                      const catStyle = CAT_COLORS[p.categoria] || { bg: '#F1F5F9', text: '#64748B' };
+                      const catStyle = CAT_COLORS[p.categoria] || { bg: '#241b13', text: '#c7a17d' };
                       return (
                         <button
                           key={p.id}
                           onClick={() => setProducto(p)}
                           className="rounded-2xl overflow-hidden text-left transition-all duration-200 group"
-                          style={{ border: '1.5px solid #E2E8F0', background: '#fff' }}
+                          style={{ border: '1.5px solid rgba(192,150,107,0.16)', background: '#1a140f' }}
                           onMouseEnter={e => {
                             e.currentTarget.style.borderColor = '#D97706';
-                            e.currentTarget.style.boxShadow = '0 4px 20px rgba(217,119,6,0.12)';
+                            e.currentTarget.style.boxShadow = '0 4px 20px rgba(217,119,6,0.18)';
                             e.currentTarget.style.transform = 'translateY(-2px)';
                           }}
                           onMouseLeave={e => {
@@ -218,7 +224,7 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
                           {/* Image */}
                           <div
                             className="flex items-center justify-center overflow-hidden"
-                            style={{ height: 96, background: '#F8FAFC' }}
+                            style={{ height: 96, background: '#241b13' }}
                           >
                             {resolverImagen(p.imagen_url) ? (
                               <img src={resolverImagen(p.imagen_url)} alt={p.nombre}
@@ -237,11 +243,11 @@ const ModalProducto = ({ productos = [], onSeleccionar, onCerrar }) => {
                                 {p.categoria}
                               </span>
                             )}
-                            <p className="font-semibold text-slate-700 text-sm mt-1.5 leading-tight">
+                            <p className="font-semibold text-[#f8d7b4] text-sm mt-1.5 leading-tight">
                               {p.nombre}
                             </p>
                             {p.medidas?.length > 0 && (
-                              <p className="text-xs text-slate-400 mt-1">
+                              <p className="text-xs text-[#c7a17d] mt-1">
                                 {p.medidas.length} medida{p.medidas.length > 1 ? 's' : ''}
                               </p>
                             )}

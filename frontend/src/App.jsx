@@ -30,11 +30,11 @@ const ManageCourses    = lazy(() => import("./pages/admin/ManageCourses"));
 const DashboardLayout  = lazy(() => import("./components/layout/DashboardLayout"));
 const AdminLayout      = lazy(() => import("./components/layout/AdminLayout"));
 // imports para el dashboard ERP (solo admin)
-const DashboardERP     = lazy(() => import("./components/Dashboard"));
-const ClientesPage     = lazy(() => import("./components/ClientesPage"));
-const ProductosPage    = lazy(() => import("./components/ProductosPage"));
-const RendimientosPage = lazy(() => import("./components/RendimientosPage"));
-const ExportarPage     = lazy(() => import("./components/Exportar"));
+const DashboardERP     = lazy(() => import("./pages/admin/dashboard_app/components/Dashboard"));
+const ClientesPage     = lazy(() => import("./pages/admin/dashboard_app/components/ClientesPage"));
+const ProductosPage    = lazy(() => import("./pages/admin/dashboard_app/components/ProductosPage"));
+const RendimientosPage = lazy(() => import("./pages/admin/dashboard_app/components/RendimientosPage"));
+const ExportarPage     = lazy(() => import("./pages/admin/dashboard_app/components/Exportar"));
 
 // ── Guards ─────────────────────────────────────────────────────────────────
 

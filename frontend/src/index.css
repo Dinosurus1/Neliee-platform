@@ -9,6 +9,7 @@
 /* ── Variables de diseño (Basadas en Paleta Café/Tierra) ────────────────────── */
 @layer base {
   :root {
+    
     /* Fondos: Usando el Marrón Oscuro (#39291c) y Marrón Musgo (#5e4c3d) */
     --color-bg-primary:    #1a140f;    /* Versión más oscura del marrón principal para legibilidad */
     --color-bg-secondary:  #39291c;    /* Marrón Oscuro principal */

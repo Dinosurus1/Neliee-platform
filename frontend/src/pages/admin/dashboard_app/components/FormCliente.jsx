@@ -102,7 +102,7 @@ const FormCliente = ({ onClienteCreado }) => {
         >
           <PhoneInput
             international
-            defaultCountry="CA"
+            defaultCountry="CO"
             countryCallingCodeEditable={true}
             value={form.telefono}
             onChange={manejarCambioTelefono}

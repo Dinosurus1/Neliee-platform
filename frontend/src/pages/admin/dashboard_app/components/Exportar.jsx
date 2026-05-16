@@ -22,7 +22,7 @@ const Exportar = () => {
   const [mensaje, setMensaje]       = useState('');
 
   const descargar = (endpoint) => {
-    window.open(`http://127.0.0.1:8000${endpoint}`, '_blank');
+    window.open(`http://127.0.0.1:8001${endpoint}`, '_blank');
   };
 
   const importarDb = async (e) => {

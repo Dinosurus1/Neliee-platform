@@ -6,6 +6,9 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr, field_validator
 
+# NUEVO
+from app.schemas.enrollment import EnrollmentOut
+
 
 class UserCreate(BaseModel):
     full_name: str
@@ -36,8 +39,10 @@ class UserOut(BaseModel):
     is_active: bool
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    # NUEVO
+    enrollments: list[EnrollmentOut] = []
 
+    model_config = {"from_attributes": True}
 
 
 

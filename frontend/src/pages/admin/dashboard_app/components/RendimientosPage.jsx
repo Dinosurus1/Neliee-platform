@@ -23,7 +23,7 @@ const CAT_GASTO_CONFIG = {
   'Servicios':       { color: '#0891B2', bg: '#E0F2FE', emoji: '⚡' },
   'Personal':        { color: '#059669', bg: '#D1FAE5', emoji: '👤' },
   'Equipos':         { color: '#DC2626', bg: '#FEE2E2', emoji: '🖨️' },
-  'Otros':           { color: '#64748B', bg: '#F1F5F9', emoji: '📎' },
+  'Otros':           { color: '#64748B', bg: '#241b13', emoji: '📎' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -134,13 +134,13 @@ const GraficaMensual = ({ datos = [] }) => {
 
 const TablaOrdenes = ({ items = [], tipo }) => {
   const colorAccent = tipo === 'ganancia' ? '#10B981' : '#F59E0B';
-  const bgAccent    = tipo === 'ganancia' ? '#ECFDF5' : '#FFFBEB';
+  const bgAccent    = tipo === 'ganancia' ? 'rgba(52,211,153,0.08)' : 'rgba(248,113,113,0.08)';
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center py-10 text-slate-300">
+      <div className="flex flex-col items-center py-10" style={{ color: '#c7a17d' }}>
         <span className="text-4xl mb-2">{tipo === 'ganancia' ? '📭' : '🕐'}</span>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm" style={{ color: '#d6c0a5' }}>
           {tipo === 'ganancia' ? 'Aún no hay órdenes entregadas con precio.' : 'Sin órdenes pendientes con precio.'}
         </p>
       </div>
@@ -151,9 +151,9 @@ const TablaOrdenes = ({ items = [], tipo }) => {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+          <tr style={{ background: '#241b13', borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
             {['#', 'Cliente', 'Producto / Medida', 'Cant.', 'Precio unit.', 'Subtotal', 'Fecha'].map(h => (
-              <th key={h} className="text-left py-2.5 px-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <th key={h} className="text-left py-2.5 px-3 text-xs font-bold uppercase tracking-wider" style={{ color: '#c7a17d' }}>
                 {h}
               </th>
             ))}
@@ -164,25 +164,25 @@ const TablaOrdenes = ({ items = [], tipo }) => {
             <tr
               key={item.orden_id}
               className="transition-colors"
-              style={{ borderBottom: '1px solid #F8FAFC' }}
-              onMouseEnter={e => e.currentTarget.style.background = bgAccent}
+              style={{ borderBottom: '1px solid rgba(192,150,107,0.12)' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#241b13'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <td className="py-3 px-3">
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#F1F5F9', color: '#64748B' }}>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#241b13', color: '#c7a17d' }}>
                   #{item.orden_id}
                 </span>
               </td>
-              <td className="py-3 px-3 font-medium text-slate-700">{item.cliente_nombre}</td>
+              <td className="py-3 px-3 font-medium" style={{ color: '#f8d7b4' }}>{item.cliente_nombre}</td>
               <td className="py-3 px-3">
-                <p className="text-slate-700 font-medium text-xs">{item.producto_nombre}</p>
+                <p className="font-medium text-xs" style={{ color: '#f8d7b4' }}>{item.producto_nombre}</p>
                 {item.medida_etiqueta && (
-                  <p className="text-xs text-slate-400">{item.medida_etiqueta}</p>
+                  <p className="text-xs" style={{ color: '#c7a17d' }}>{item.medida_etiqueta}</p>
                 )}
               </td>
-              <td className="py-3 px-3 text-slate-500 text-xs">{item.cantidad ?? '—'}</td>
-              <td className="py-3 px-3 text-slate-500 text-xs">
-                {item.precio_unitario != null ? COP(item.precio_unitario) : <span className="italic text-slate-300">Sin precio</span>}
+              <td className="py-3 px-3 text-xs" style={{ color: '#c7a17d' }}>{item.cantidad ?? '—'}</td>
+              <td className="py-3 px-3 text-xs" style={{ color: '#c7a17d' }}>
+                {item.precio_unitario != null ? COP(item.precio_unitario) : <span className="italic" style={{ color: '#8f7a69' }}>Sin precio</span>}
               </td>
               <td className="py-3 px-3">
                 {item.subtotal != null ? (
@@ -190,10 +190,10 @@ const TablaOrdenes = ({ items = [], tipo }) => {
                     {COP(item.subtotal)}
                   </span>
                 ) : (
-                  <span className="text-xs italic text-slate-300">—</span>
+                  <span className="text-xs italic" style={{ color: '#8f7a69' }}>—</span>
                 )}
               </td>
-              <td className="py-3 px-3 text-slate-400 text-xs">
+              <td className="py-3 px-3 text-xs" style={{ color: '#c7a17d' }}>
                 {new Date(item.fecha_creacion).toLocaleDateString('es-CO', {
                   day: '2-digit', month: '2-digit', year: 'numeric',
                 })}
@@ -259,12 +259,12 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
       style={{ background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onCerrar()}
     >
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full mx-4 overflow-y-auto" style={{ maxWidth: 460, maxHeight: '92vh' }}>
+      <div className="rounded-2xl shadow-2xl p-6 w-full mx-4 overflow-y-auto" style={{ maxWidth: 460, maxHeight: '92vh', background: '#1a140f', border: '1px solid rgba(192,150,107,0.16)' }}>
         <div className="flex items-center gap-3 mb-5">
           <div className="text-2xl w-10 h-10 flex items-center justify-center rounded-xl" style={{ background: cfg.bg }}>
             {cfg.emoji}
           </div>
-          <h3 className="font-bold text-slate-800 text-lg">
+          <h3 className="font-bold text-[#f8d7b4] text-lg">
             {esEdicion ? 'Editar Gasto' : 'Registrar Gasto'}
           </h3>
         </div>
@@ -272,7 +272,7 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
         <div className="space-y-4">
           {/* Descripción */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#c7a17d' }}>
               Descripción <span className="text-red-400">*</span>
             </label>
             <input
@@ -281,13 +281,14 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
               onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
               placeholder="Ej: Compra de papel couché, Mantenimiento ploter…"
               className="input"
+              style={{ background: '#241b13', borderColor: '#3b2a1d', color: '#f8d7b4' }}
             />
           </div>
 
           {/* Monto + Fecha */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#c7a17d' }}>
                 Monto ($) <span className="text-red-400">*</span>
               </label>
               <input
@@ -296,10 +297,11 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
                 onChange={e => setForm(p => ({ ...p, monto: e.target.value }))}
                 placeholder="Ej: 150000"
                 className="input"
+                style={{ background: '#241b13', borderColor: '#3b2a1d', color: '#f8d7b4' }}
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#c7a17d' }}>
                 Fecha
               </label>
               <input
@@ -307,13 +309,14 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
                 value={form.fecha}
                 onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
                 className="input"
+                style={{ background: '#241b13', borderColor: '#3b2a1d', color: '#f8d7b4' }}
               />
             </div>
           </div>
 
           {/* Categoría */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#c7a17d' }}>
               Categoría
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -327,7 +330,7 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
                     className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl text-xs font-semibold transition-all border"
                     style={form.categoria === cat
                       ? { background: c.bg, color: c.color, borderColor: c.color, boxShadow: `0 0 0 2px ${c.color}25` }
-                      : { background: '#F8FAFC', color: '#94A3B8', borderColor: '#E2E8F0' }
+                      : { background: '#241b13', color: '#c7a17d', borderColor: '#3b2a1d' }
                     }
                   >
                     <span className="text-base">{c.emoji}</span>
@@ -340,7 +343,7 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
 
           {/* Notas */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#c7a17d' }}>
               Notas (opcional)
             </label>
             <input
@@ -348,6 +351,7 @@ const ModalGasto = ({ gasto, onCerrar, onGuardado }) => {
               onChange={e => setForm(p => ({ ...p, notas: e.target.value }))}
               placeholder="Detalles adicionales…"
               className="input"
+              style={{ background: '#241b13', borderColor: '#3b2a1d', color: '#f8d7b4' }}
             />
           </div>
 
@@ -378,10 +382,10 @@ const TabRendimientos = ({ resumen, cargando, mensual }) => {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-100 rounded-2xl" />)}
+          {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-2xl" style={{ background: '#241b13' }} />)}
         </div>
-        <div className="h-44 bg-slate-100 rounded-2xl" />
-        <div className="h-64 bg-slate-100 rounded-2xl" />
+        <div className="h-44 rounded-2xl" style={{ background: '#241b13' }} />
+        <div className="h-64 rounded-2xl" style={{ background: '#241b13' }} />
       </div>
     );
   }
@@ -420,29 +424,29 @@ const TabRendimientos = ({ resumen, cargando, mensual }) => {
         </div>
 
         {/* Ganancias */}
-        <div className="rounded-2xl p-5" style={{ background: '#ECFDF5', border: '1.5px solid #A7F3D0' }}>
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-500">Cobrado</p>
-          <p className="text-2xl font-bold text-emerald-700 mt-1 leading-none">{COP(resumen.ganancias_entregado)}</p>
-          <p className="text-xs text-emerald-500 mt-1">
+        <div className="rounded-2xl p-5" style={{ background: '#1a140f', border: '1.5px solid rgba(52,211,153,0.15)' }}>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#34D399' }}>Cobrado</p>
+          <p className="text-2xl font-bold mt-1 leading-none" style={{ color: '#34D399' }}>{COP(resumen.ganancias_entregado)}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
             {resumen.detalle_ganancias.length} órden{resumen.detalle_ganancias.length !== 1 ? 'es' : ''} entregada{resumen.detalle_ganancias.length !== 1 ? 's' : ''}
           </p>
         </div>
 
         {/* Deuda */}
-        <div className="rounded-2xl p-5" style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A' }}>
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-500">Por cobrar</p>
-          <p className="text-2xl font-bold text-amber-700 mt-1 leading-none">{COP(resumen.deuda_pendiente)}</p>
-          <p className="text-xs text-amber-500 mt-1">
+        <div className="rounded-2xl p-5" style={{ background: '#1a140f', border: '1.5px solid rgba(245,158,11,0.15)' }}>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#F59E0B' }}>Por cobrar</p>
+          <p className="text-2xl font-bold mt-1 leading-none" style={{ color: '#F59E0B' }}>{COP(resumen.deuda_pendiente)}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
             {resumen.detalle_deuda.length} órden{resumen.detalle_deuda.length !== 1 ? 'es' : ''} pendiente{resumen.detalle_deuda.length !== 1 ? 's' : ''}
           </p>
         </div>
 
         {/* Gastos */}
-        <div className="rounded-2xl p-5" style={{ background: '#FEF2F2', border: '1.5px solid #FECACA' }}>
-          <p className="text-xs font-bold uppercase tracking-widest text-red-400">Gastos totales</p>
-          <p className="text-2xl font-bold text-red-600 mt-1 leading-none">{COP(resumen.total_gastos)}</p>
+        <div className="rounded-2xl p-5" style={{ background: '#1a140f', border: '1.5px solid rgba(248,113,113,0.18)' }}>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#F87171' }}>Gastos totales</p>
+          <p className="text-2xl font-bold mt-1 leading-none" style={{ color: '#F87171' }}>{COP(resumen.total_gastos)}</p>
           {resumen.ordenes_sin_precio > 0 && (
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
               ⚠️ {resumen.ordenes_sin_precio} órdenes sin precio
             </p>
           )}
@@ -451,11 +455,11 @@ const TabRendimientos = ({ resumen, cargando, mensual }) => {
 
       {/* ── Gráfica mensual ────────────────────────────────────────── */}
       {mensual.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-5">
+        <div className="rounded-2xl border p-5" style={{ background: '#1a140f', borderColor: 'rgba(192,150,107,0.16)' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm">Evolución mensual</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Últimos 6 meses · Ganancias vs Gastos</p>
+              <h3 className="font-bold text-[#f8d7b4] text-sm">Evolución mensual</h3>
+              <p className="text-xs" style={{ color: '#c7a17d', marginTop: '0.125rem' }}>Últimos 6 meses · Ganancias vs Gastos</p>
             </div>
           </div>
           <GraficaMensual datos={mensual} />
@@ -463,9 +467,9 @@ const TabRendimientos = ({ resumen, cargando, mensual }) => {
       )}
 
       {/* ── Detalle de órdenes ─────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a140f', borderColor: 'rgba(192,150,107,0.16)' }}>
         {/* Tabs internos */}
-        <div className="flex" style={{ borderBottom: '1px solid #F1F5F9' }}>
+        <div className="flex" style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
           {[
             { id: 'ganancias', label: '✅ Cobrado', count: resumen.detalle_ganancias.length },
             { id: 'deuda',     label: '⏳ Por cobrar', count: resumen.detalle_deuda.length },
@@ -475,16 +479,16 @@ const TabRendimientos = ({ resumen, cargando, mensual }) => {
               onClick={() => setVistaDetalle(t.id)}
               className="flex-1 py-3.5 text-sm font-semibold transition-all flex items-center justify-center gap-2"
               style={vistaDetalle === t.id
-                ? { background: '#FAFAFA', borderBottom: `2px solid ${t.id === 'ganancias' ? '#10B981' : '#F59E0B'}`, color: '#0F172A' }
-                : { color: '#94A3B8' }
+                ? { background: '#241b13', borderBottom: `2px solid ${t.id === 'ganancias' ? '#10B981' : '#F59E0B'}`, color: '#f8d7b4' }
+                : { color: '#c7a17d' }
               }
             >
               {t.label}
               <span
                 className="text-xs px-2 py-0.5 rounded-full font-bold"
                 style={vistaDetalle === t.id
-                  ? { background: t.id === 'ganancias' ? '#ECFDF5' : '#FFFBEB', color: t.id === 'ganancias' ? '#059669' : '#D97706' }
-                  : { background: '#F1F5F9', color: '#94A3B8' }
+                  ? { background: '#241b13', color: t.id === 'ganancias' ? '#34D399' : '#F59E0B' }
+                  : { background: '#241b13', color: '#c7a17d' }
                 }
               >
                 {t.count}
@@ -567,18 +571,18 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
                 key={cat}
                 className="rounded-2xl p-4 cursor-pointer transition-all"
                 style={{
-                  background: filtroCat === cat ? cfg.bg : '#FFFFFF',
-                  border: `1.5px solid ${filtroCat === cat ? cfg.color : '#E2E8F0'}`,
+                  background: filtroCat === cat ? cfg.bg : '#1a140f',
+                  border: `1.5px solid ${filtroCat === cat ? cfg.color : 'rgba(192,150,107,0.16)'}`,
                   boxShadow: filtroCat === cat ? `0 0 0 2px ${cfg.color}20` : 'none',
                 }}
                 onClick={() => setFiltroCat(filtroCat === cat ? 'todas' : cat)}
               >
                 <span className="text-xl">{cfg.emoji}</span>
-                <p className="text-xs font-semibold text-slate-600 mt-1 leading-tight">{cat}</p>
+                <p className="text-xs font-semibold mt-1 leading-tight" style={{ color: '#c7a17d' }}>{cat}</p>
                 <p className="font-bold text-sm mt-0.5" style={{ color: cfg.color }}>
                   {COP(total)}
                 </p>
-                <p className="text-xs text-slate-400">{pct}%</p>
+                <p className="text-xs" style={{ color: '#c7a17d' }}>{pct}%</p>
               </div>
             );
           })}
@@ -586,10 +590,10 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
       )}
 
       {/* ── Barra de acciones ─────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="rounded-2xl border overflow-hidden" style={{ background: '#1a140f', borderColor: 'rgba(192,150,107,0.16)' }}>
         <div
           className="flex items-center justify-between px-5 py-4 gap-3 flex-wrap"
-          style={{ borderBottom: '1px solid #F1F5F9' }}
+          style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <input
@@ -598,10 +602,10 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar gasto…"
               className="input text-sm"
-              style={{ maxWidth: 260, padding: '7px 12px' }}
+              style={{ maxWidth: 260, padding: '7px 12px', background: '#241b13', borderColor: '#3b2a1d', color: '#f8d7b4' }}
             />
             {gastosFiltrados.length > 0 && (
-              <span className="text-xs text-slate-400 font-medium flex-shrink-0">
+              <span className="text-xs font-medium flex-shrink-0" style={{ color: '#c7a17d' }}>
                 {gastosFiltrados.length} registro{gastosFiltrados.length !== 1 ? 's' : ''} · {COP(totalFiltrado)}
               </span>
             )}
@@ -617,12 +621,12 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
         {/* Tabla */}
         {cargandoGastos ? (
           <div className="p-6 space-y-3 animate-pulse">
-            {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-50 rounded-xl" />)}
+            {[1,2,3].map(i => <div key={i} className="h-12 rounded-xl" style={{ background: '#241b13' }} />)}
           </div>
         ) : gastosFiltrados.length === 0 ? (
-          <div className="flex flex-col items-center py-14 text-slate-300">
+          <div className="flex flex-col items-center py-14" style={{ color: '#c7a17d' }}>
             <span className="text-5xl mb-3">💸</span>
-            <p className="text-sm font-medium text-slate-400">
+            <p className="text-sm font-medium" style={{ color: '#d6c0a5' }}>
               {gastos.length === 0 ? 'Aún no hay gastos registrados.' : 'Sin resultados para el filtro.'}
             </p>
             {gastos.length === 0 && (
@@ -635,9 +639,9 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+                <tr style={{ background: '#241b13', borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
                   {['#', 'Descripción', 'Categoría', 'Monto', 'Fecha', 'Notas', ''].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <th key={h} className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider" style={{ color: '#c7a17d' }}>
                       {h}
                     </th>
                   ))}
@@ -650,16 +654,16 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
                     <tr
                       key={g.id}
                       className="group transition-colors"
-                      style={{ borderBottom: '1px solid #F8FAFC' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#FFFBEB'}
+                      style={{ borderBottom: '1px solid rgba(192,150,107,0.12)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#241b13'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <td className="py-3 px-4">
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#F1F5F9', color: '#64748B' }}>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#241b13', color: '#c7a17d' }}>
                           #{g.id}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-medium text-slate-700">{g.descripcion}</td>
+                      <td className="py-3 px-4 font-medium" style={{ color: '#f8d7b4' }}>{g.descripcion}</td>
                       <td className="py-3 px-4">
                         <span
                           className="text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 w-fit"
@@ -671,13 +675,13 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
                       <td className="py-3 px-4 font-bold" style={{ color: '#DC2626' }}>
                         {COP(g.monto)}
                       </td>
-                      <td className="py-3 px-4 text-slate-400 text-xs">
+                      <td className="py-3 px-4 text-xs" style={{ color: '#c7a17d' }}>
                         {new Date(g.fecha).toLocaleDateString('es-CO', {
                           day: '2-digit', month: '2-digit', year: 'numeric',
                         })}
                       </td>
-                      <td className="py-3 px-4 text-slate-400 text-xs max-w-[140px] truncate">
-                        {g.notas || <span className="italic text-slate-300">—</span>}
+                      <td className="py-3 px-4 text-xs max-w-[140px] truncate" style={{ color: '#c7a17d' }}>
+                        {g.notas || <span className="italic" style={{ color: '#8f7a69' }}>—</span>}
                       </td>
                       <td className="py-3 px-4">
                         {eliminandoId === g.id ? (
@@ -690,7 +694,10 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
                             </button>
                             <button
                               onClick={() => setEliminandoId(null)}
-                              className="text-xs text-slate-400 hover:text-slate-600 transition"
+                              className="text-xs"
+                            style={{ color: '#c7a17d' }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#f8d7b4'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#c7a17d'}
                             >
                               Cancelar
                             </button>
@@ -699,13 +706,19 @@ const TabGastos = ({ gastos, setGastos, cargandoGastos }) => {
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => setModal(g)}
-                              className="text-xs text-slate-400 hover:text-blue-500 transition"
+                              className="text-xs" style={{ color: '#c7a17d' }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#f8d7b4'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#c7a17d'}
+                          
                             >
                               ✏️
                             </button>
                             <button
                               onClick={() => setEliminandoId(g.id)}
-                              className="text-xs text-slate-300 hover:text-red-400 transition"
+                              className="text-xs" style={{ color: '#c7a17d' }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#f8d7b4'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#c7a17d'}
+                          
                             >
                               🗑
                             </button>
@@ -779,8 +792,8 @@ const RendimientosPage = () => {
     <div className="space-y-4">
 
       {/* ── Header + tabs principales ─────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid #F1F5F9' }}>
+      <div className="rounded-2xl border border-slate-100 overflow-hidden" style={{ background: '#1a140f', borderColor: 'rgba(192,150,107,0.16)' }}>
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
           <div className="flex items-center gap-3">
             <div
               className="flex items-center justify-center rounded-xl text-xl"
@@ -789,8 +802,8 @@ const RendimientosPage = () => {
               📊
             </div>
             <div>
-              <h2 className="font-bold text-slate-800 text-lg leading-tight">Rendimientos Financieros</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="font-bold text-[#f8d7b4] text-lg leading-tight">Rendimientos Financieros</h2>
+              <p className="text-xs" style={{ color: '#c7a17d' }}>
                 Ganancias · Deudas · Gastos operativos
               </p>
             </div>
@@ -799,8 +812,8 @@ const RendimientosPage = () => {
             <div
               className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
               style={{
-                background: resumen.balance_neto >= 0 ? '#ECFDF5' : '#FEF2F2',
-                color: resumen.balance_neto >= 0 ? '#059669' : '#DC2626',
+                background: resumen.balance_neto >= 0 ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.16)',
+                color: resumen.balance_neto >= 0 ? '#34D399' : '#F87171',
               }}
             >
               {resumen.balance_neto >= 0 ? '▲' : '▼'} {COP(Math.abs(resumen.balance_neto))}
@@ -819,8 +832,8 @@ const RendimientosPage = () => {
               onClick={() => setTab(t.id)}
               className="mr-1 px-5 py-3 text-sm font-semibold transition-all relative"
               style={tab === t.id
-                ? { color: '#0F172A', borderBottom: '2px solid #D97706', marginBottom: -1 }
-                : { color: '#94A3B8', borderBottom: '2px solid transparent', marginBottom: -1 }
+                ? { color: '#f8d7b4', borderBottom: '2px solid #D97706', marginBottom: -1 }
+                : { color: '#c7a17d', borderBottom: '2px solid transparent', marginBottom: -1 }
               }
             >
               {t.label}

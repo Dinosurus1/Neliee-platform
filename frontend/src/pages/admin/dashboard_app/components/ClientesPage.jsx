@@ -9,11 +9,11 @@ const parseUTC = (str) => {
 };
 
 const ESTADO_STYLE = {
-  'Pendiente':  { bg: '#FEF3C7', color: '#92400E' },
-  'En proceso': { bg: '#EFF6FF', color: '#1D4ED8' },
-  'Listo':      { bg: '#ECFDF5', color: '#065F46' },
-  'Entregado':  { bg: '#F1F5F9', color: '#475569' },
-  'Cancelado':  { bg: '#FEF2F2', color: '#991B1B' },
+  'Pendiente':  { bg: 'rgba(253,230,138,0.22)', color: '#92400E' },
+  'En proceso': { bg: 'rgba(59,130,246,0.14)', color: '#1D4ED8' },
+  'Listo':      { bg: 'rgba(16,185,129,0.16)', color: '#065F46' },
+  'Entregado':  { bg: 'rgba(148,205,166,0.15)', color: '#475569' },
+  'Cancelado':  { bg: 'rgba(248,113,113,0.18)', color: '#991B1B' },
 };
 
 // ── Panel derecho ─────────────────────────────────────────────────────────
@@ -51,15 +51,15 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
     <div className="max-w-3xl mx-auto">
 
       {/* ── Info del cliente ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-4">
-        <div className="flex items-start gap-4 pb-5 mb-5" style={{ borderBottom: '1px solid #F1F5F9' }}>
+      <div className="bg-[#2a1f16] rounded-2xl shadow-sm border border-[rgba(192,150,107,0.16)] p-6 mb-4">
+        <div className="flex items-start gap-4 pb-5 mb-5" style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
           <div className="flex items-center justify-center rounded-2xl text-2xl font-bold flex-shrink-0"
             style={{ width: 64, height: 64, background: '#FEF3C7', color: '#D97706' }}>
             {cliente.nombre[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-slate-800 text-2xl">{cliente.nombre}</h3>
+              <h3 className="font-bold text-[#f8d7b4] text-2xl">{cliente.nombre}</h3>
               {cliente.es_cliente_regular && (
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
                   style={{ background: '#FEF3C7', color: '#92400E' }}>
@@ -67,7 +67,7 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap gap-5 mt-2 text-sm text-slate-500">
+            <div className="flex flex-wrap gap-5 mt-2 text-sm text-[#d6c0a5]">
               {cliente.email    && <span>✉️ {cliente.email}</span>}
               {cliente.telefono && <span>📞 {cliente.telefono}</span>}
               {cliente.fecha_creacion && (
@@ -83,48 +83,48 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
         {!cargandoOrdenes && stats && (
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-2xl p-4 text-center"
-              style={{ background: '#ECFDF5', border: '1.5px solid #A7F3D0' }}>
-              <p className="text-xs font-bold uppercase tracking-wider text-emerald-500 mb-1">Cobrado</p>
-              <p className="font-bold text-lg text-emerald-700 leading-none">{COP(stats.totalCobrado)}</p>
-              <p className="text-xs text-emerald-500 mt-1">
+              style={{ background: '#152e25', border: '1.5px solid rgba(16,185,129,0.24)' }}>
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-1">Cobrado</p>
+              <p className="font-bold text-lg text-emerald-200 leading-none">{COP(stats.totalCobrado)}</p>
+              <p className="text-xs text-emerald-300 mt-1">
                 {ordenes.filter(o => o.estado === 'Entregado').length} entregadas
               </p>
             </div>
             <div className="rounded-2xl p-4 text-center"
-              style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A' }}>
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-500 mb-1">Por cobrar</p>
-              <p className="font-bold text-lg text-amber-700 leading-none">{COP(stats.totalDeuda)}</p>
-              <p className="text-xs text-amber-500 mt-1">
+              style={{ background: '#2e1e0f', border: '1.5px solid rgba(253,230,138,0.28)' }}>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-1">Por cobrar</p>
+              <p className="font-bold text-lg text-amber-200 leading-none">{COP(stats.totalDeuda)}</p>
+              <p className="text-xs text-amber-300 mt-1">
                 {ordenes.filter(o => ['Pendiente','En proceso','Listo'].includes(o.estado)).length} activas
               </p>
             </div>
             <div className="rounded-2xl p-4 text-center"
-              style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0' }}>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Total acumulado</p>
-              <p className="font-bold text-lg text-slate-700 leading-none">{COP(stats.total)}</p>
-              <p className="text-xs text-slate-400 mt-1">{ordenes.length} órdenes</p>
+              style={{ background: '#241b13', border: '1.5px solid rgba(226,232,240,0.16)' }}>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#d6c0a5] mb-1">Total acumulado</p>
+              <p className="font-bold text-lg text-[#f8d7b4] leading-none">{COP(stats.total)}</p>
+              <p className="text-xs text-[#d6c0a5] mt-1">{ordenes.length} órdenes</p>
             </div>
           </div>
         )}
         {!cargandoOrdenes && stats === null && ordenes.length === 0 && (
-          <p className="text-sm text-slate-400 text-center py-4">Sin órdenes registradas.</p>
+          <p className="text-sm text-[#c7a17d] text-center py-4">Sin órdenes registradas.</p>
         )}
         {!cargandoOrdenes && stats?.sinPrecio > 0 && (
-          <p className="text-xs text-slate-400 mt-3 text-center">
+          <p className="text-xs text-[#c7a17d] mt-3 text-center">
             ⚠️ {stats.sinPrecio} órdenes sin precio asignado no están incluidas en los totales.
           </p>
         )}
         {cargandoOrdenes && (
           <div className="grid grid-cols-3 gap-3 animate-pulse">
-            {[1,2,3].map(i => <div key={i} className="h-20 bg-slate-100 rounded-2xl" />)}
+            {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl" style={{ background: '#241b13' }} />)}
           </div>
         )}
       </div>
 
       {/* ── Tabs ── */}
       {ordenes.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="flex" style={{ borderBottom: '1px solid #F1F5F9' }}>
+        <div className="rounded-2xl shadow-sm border border-[rgba(192,150,107,0.16)] overflow-hidden bg-[#261b11]">
+          <div className="flex" style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
             {[
               { id: 'historial', label: '🧾 Historial de compras' },
               { id: 'productos', label: '📦 Por producto' },
@@ -132,8 +132,8 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
               <button key={t.id} onClick={() => setVistaTab(t.id)}
                 className="flex-1 py-3.5 text-sm font-semibold transition-all"
                 style={vistaTab === t.id
-                  ? { borderBottom: '2px solid #D97706', color: '#0F172A', background: '#FAFAFA' }
-                  : { color: '#94A3B8' }
+                  ? { borderBottom: '2px solid #D97706', color: '#f8d7b4', background: '#3b2a1d' }
+                  : { color: '#c7a17d' }
                 }
               >
                 {t.label}
@@ -146,14 +146,14 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
             <div className="overflow-x-auto">
               {cargandoOrdenes ? (
                 <div className="p-6 space-y-3 animate-pulse">
-                  {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-50 rounded-xl" />)}
+                  {[1,2,3].map(i => <div key={i} className="h-12 rounded-xl" style={{ background: '#241b13' }} />)}
                 </div>
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+                    <tr style={{ background: 'rgba(79,63,52,0.35)', borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
                       {['#', 'Producto', 'Medida', 'Cant.', 'P. Unit.', 'Total', 'Estado', 'Fecha'].map(h => (
-                        <th key={h} className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <th key={h} className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider text-[#c7a17d]">
                           {h}
                         </th>
                       ))}
@@ -169,33 +169,33 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
                       return (
                         <tr key={o.id}
                           className="transition-colors"
-                          style={{ borderBottom: '1px solid #F8FAFC' }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#FFFBEB'}
+                          style={{ borderBottom: '1px solid rgba(192,150,107,0.12)' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,175,107,0.08)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
                           <td className="py-3 px-4">
                             <span className="text-xs font-bold px-1.5 py-0.5 rounded-md"
-                              style={{ background: '#F1F5F9', color: '#64748B' }}>
+                              style={{ background: '#3b2a1d', color: '#d6c0a5' }}>
                               #{o.id}
                             </span>
                           </td>
-                          <td className="py-3 px-4 font-medium text-slate-700 max-w-[120px]">
+                          <td className="py-3 px-4 font-medium text-[#f8d7b4] max-w-[120px]">
                             <p className="truncate">{o.producto?.nombre || '—'}</p>
                             {o.producto?.categoria && (
-                              <p className="text-xs text-slate-400 capitalize">{o.producto.categoria}</p>
+                              <p className="text-xs text-[#c7a17d] capitalize">{o.producto.categoria}</p>
                             )}
                           </td>
                           {/* ✅ medida viene directo de orden.medida (relación del backend) */}
-                          <td className="py-3 px-4 text-xs text-slate-500">
+                          <td className="py-3 px-4 text-xs text-[#c7a17d]">
                             {o.medida?.etiqueta
                               ? o.medida.etiqueta
                               : <span className="italic text-slate-300">—</span>
                             }
                           </td>
-                          <td className="py-3 px-4 text-slate-600 font-medium text-xs">
+                          <td className="py-3 px-4 text-[#d6c0a5] font-medium text-xs">
                             {o.cantidad ?? <span className="text-slate-300">—</span>}
                           </td>
-                          <td className="py-3 px-4 text-xs text-slate-500">
+                          <td className="py-3 px-4 text-xs text-[#c7a17d]">
                             {precioUnitario != null
                               ? COP(precioUnitario)
                               : <span className="italic text-slate-300">—</span>
@@ -217,7 +217,7 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
                               {o.estado}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-xs text-slate-400 whitespace-nowrap">
+                          <td className="py-3 px-4 text-xs text-[#c7a17d] whitespace-nowrap">
                             {parseUTC(o.fecha_creacion)?.toLocaleDateString('es-CO', {
                               day: '2-digit', month: '2-digit', year: 'numeric',
                             })}
@@ -230,8 +230,8 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
                   {/* Fila de totales */}
                   {stats && (
                     <tfoot>
-                      <tr style={{ background: '#F8FAFC', borderTop: '2px solid #E2E8F0' }}>
-                        <td colSpan={5} className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">
+                      <tr style={{ background: 'rgba(79,63,52,0.35)', borderTop: '2px solid rgba(192,150,107,0.16)' }}>
+                        <td colSpan={5} className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-[#c7a17d] text-right">
                           Totales
                         </td>
                         <td className="py-3 px-4">
@@ -260,7 +260,7 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
             <div className="p-5 space-y-3">
               {cargandoOrdenes ? (
                 <div className="space-y-3 animate-pulse">
-                  {[1,2,3].map(i => <div key={i} className="h-16 bg-slate-50 rounded-xl" />)}
+                  {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl" style={{ background: '#241b13' }} />)}
                 </div>
               ) : (
                 porProducto.map((grupo, idx) => {
@@ -277,27 +277,27 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
                   return (
                     <div key={grupo.nombre} className="rounded-2xl p-4"
                       style={{
-                        background: idx === 0 ? '#FFFBEB' : '#FFFFFF',
-                        border: `1px solid ${idx === 0 ? '#FDE68A' : '#E2E8F0'}`,
+                        background: idx === 0 ? '#2e1e0f' : '#241b13',
+                        border: `1px solid ${idx === 0 ? 'rgba(253,230,138,0.28)' : 'rgba(226,232,240,0.16)'}`,
                       }}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-base flex-shrink-0">{medal}</span>
                           <div className="min-w-0">
-                            <span className="font-semibold text-slate-700 text-sm truncate block">
+                            <span className="font-semibold text-[#f8d7b4] text-sm truncate block">
                               {grupo.nombre}
                             </span>
                             {grupo.categoria && (
                               <span className="text-xs px-2 py-0.5 rounded-full capitalize"
-                                style={{ background: '#EFF6FF', color: '#3B82F6' }}>
+                                style={{ background: 'rgba(59,130,246,0.14)', color: '#93c5fd' }}>
                                 {grupo.categoria}
                               </span>
                             )}
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-3">
-                          <p className="font-bold text-sm text-slate-700">
+                          <p className="font-bold text-sm text-[#f8d7b4]">
                             {grupo.ordenes.length} {grupo.ordenes.length === 1 ? 'orden' : 'órdenes'}
                           </p>
                           {totalGrupo > 0 && (
@@ -305,7 +305,7 @@ const PanelCliente = ({ cliente, ordenes, cargandoOrdenes }) => {
                           )}
                         </div>
                       </div>
-                      <div className="h-2 rounded-full" style={{ background: '#E2E8F0' }}>
+                      <div className="h-2 rounded-full" style={{ background: 'rgba(226,232,240,0.16)' }}>
                         <div className="h-full rounded-full transition-all duration-700"
                           style={{ width: `${pct}%`, background: idx === 0 ? '#D97706' : '#93C5FD' }} />
                       </div>
@@ -395,16 +395,16 @@ const ClientesPage = () => {
   };
 
   return (
-    <div className="flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+    <div className="flex flex-col bg-[#1a140f] rounded-2xl shadow-sm border border-[rgba(192,150,107,0.16)] overflow-hidden"
       style={{ height: 'calc(100vh - 5rem)' }}>
 
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-        style={{ borderBottom: '1px solid #F1F5F9' }}>
+        style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center rounded-xl text-xl"
-            style={{ width: 40, height: 40, background: '#EFF6FF' }}>👥</div>
-          <h2 className="font-bold text-slate-800 text-lg">Gestión de Clientes</h2>
+            style={{ width: 40, height: 40, background: '#D97706', color: '#fff' }}>👥</div>
+          <h2 className="font-bold text-[#f8d7b4] text-lg">Gestión de Clientes</h2>
         </div>
       </div>
 
@@ -412,10 +412,10 @@ const ClientesPage = () => {
 
         {/* ── Lista izquierda ── */}
         <div className="flex flex-col flex-shrink-0 overflow-hidden"
-          style={{ width: 300, borderRight: '1px solid #F1F5F9' }}>
+          style={{ width: 300, borderRight: '1px solid rgba(192,150,107,0.16)' }}>
 
           {/* Filtro tipo */}
-          <div className="px-3 py-2.5 flex gap-1.5" style={{ borderBottom: '1px solid #F1F5F9' }}>
+          <div className="px-3 py-2.5 flex gap-1.5" style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
             {[
               { value: 'todos',     label: 'Todos' },
               { value: 'regulares', label: '⭐ Regulares' },
@@ -425,7 +425,7 @@ const ClientesPage = () => {
                 className="flex-1 text-xs py-1.5 rounded-lg font-semibold transition-all"
                 style={filtroTipo === opt.value
                   ? { background: '#0F172A', color: '#fff' }
-                  : { background: '#F1F5F9', color: '#64748B' }
+                  : { background: '#2a1f16', color: '#c7a17d' }
                 }
               >
                 {opt.label}
@@ -434,13 +434,13 @@ const ClientesPage = () => {
           </div>
 
           {/* Filtro fecha */}
-          <div className="px-3 py-3" style={{ borderBottom: '1px solid #F8FAFC' }}>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
+          <div className="px-3 py-3" style={{ borderBottom: '1px solid rgba(192,150,107,0.16)' }}>
+            <label className="text-xs font-bold uppercase tracking-wider text-[#d6c0a5] mb-1.5 block">
               Filtrar por fecha de registro
             </label>
             <div className="flex gap-1.5 items-center">
               <input type="date" value={filtroDia} onChange={e => setFiltroDia(e.target.value)}
-                className="border rounded flex-1 text-xs" style={{ padding: '7px 10px' }} />
+                className="border rounded flex-1 text-xs bg-[#2a1f16] text-[#f8d7b4] border-[rgba(192,150,107,0.16)]" style={{ padding: '7px 10px' }} />
               {filtroDia && (
                 <button onClick={() => setFiltroDia('')}
                   className="text-slate-300 hover:text-red-400 text-sm transition flex-shrink-0">
@@ -448,7 +448,7 @@ const ClientesPage = () => {
                 </button>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1.5">
+            <p className="text-xs text-[#c7a17d] mt-1.5">
               {clientesFiltrados.length} de {clientes.length} cliente{clientes.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -457,10 +457,10 @@ const ClientesPage = () => {
           <div className="flex-1 overflow-y-auto">
             {cargandoClientes ? (
               <div className="p-4 space-y-2">
-                {[1,2,3].map(i => <div key={i} className="h-14 bg-slate-50 rounded-xl animate-pulse" />)}
+                {[1,2,3].map(i => <div key={i} className="h-14 rounded-xl animate-pulse" style={{ background: '#2a1f16' }} />)}
               </div>
             ) : clientesFiltrados.length === 0 ? (
-              <div className="p-6 text-center text-sm text-slate-400">
+              <div className="p-6 text-center text-sm text-[#c7a17d]">
                 {filtroDia ? 'Sin clientes ese día.' : 'No hay clientes registrados.'}
               </div>
             ) : (
@@ -471,26 +471,26 @@ const ClientesPage = () => {
                       className="w-full text-left px-4 py-3.5 transition-all group relative">
                       <div className="absolute inset-0 transition-all"
                         style={{
-                          background: clienteActivo?.id === c.id ? '#FFFBEB' : 'transparent',
+                          background: clienteActivo?.id === c.id ? 'rgba(253,230,138,0.12)' : 'transparent',
                           borderLeft: `3px solid ${clienteActivo?.id === c.id ? '#D97706' : 'transparent'}`,
-                          borderBottom: '1px solid #F8FAFC', zIndex: 0,
+                          borderBottom: '1px solid rgba(192,150,107,0.16)', zIndex: 0,
                         }} />
                       <div className="relative z-10 flex items-center justify-between">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
                             style={{
                               width: 32, height: 32,
-                              background: clienteActivo?.id === c.id ? '#D97706' : '#EFF6FF',
-                              color:      clienteActivo?.id === c.id ? '#fff'    : '#3B82F6',
+                              background: clienteActivo?.id === c.id ? '#D97706' : '#3b2a1d',
+                              color:      clienteActivo?.id === c.id ? '#fff'    : '#efaf6b',
                             }}>
                             {c.nombre[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-slate-700 text-sm truncate leading-tight">
+                            <p className="font-semibold text-[#f8d7b4] text-sm truncate leading-tight">
                               {c.nombre}
                             </p>
                             {c.es_cliente_regular && (
-                              <span className="text-[10px] font-bold text-amber-500">⭐ Regular</span>
+                              <span className="text-[10px] font-bold text-[#f8d7b4]">⭐ Regular</span>
                             )}
                           </div>
                         </div>
@@ -507,8 +507,8 @@ const ClientesPage = () => {
                     </button>
                   ) : (
                     <div className="mx-3 my-1.5 p-3 rounded-xl"
-                      style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                      <p className="text-xs font-semibold text-red-700 mb-1.5">
+                      style={{ background: '#3c1316', border: '1px solid rgba(239,68,68,0.3)' }}>
+                      <p className="text-xs font-semibold text-red-200 mb-1.5">
                         ¿Eliminar a <strong>{c.nombre}</strong>?
                       </p>
                       {errorEliminar
@@ -522,7 +522,7 @@ const ClientesPage = () => {
                           {borrando ? '...' : 'Sí, eliminar'}
                         </button>
                         <button onClick={cancelarEliminar}
-                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 bg-white">
+                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-[#f8d7b4] border border-[rgba(192,150,107,0.16)] bg-[#2a1f16]">
                           Cancelar
                         </button>
                       </div>
@@ -535,12 +535,12 @@ const ClientesPage = () => {
         </div>
 
         {/* ── Panel derecho ── */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#1f1610]">
           {!clienteActivo ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-300">
+            <div className="flex flex-col items-center justify-center h-full text-[#c7a17d]">
               <span className="text-6xl mb-3">👈</span>
-              <p className="text-base font-medium text-slate-400">Seleccioná un cliente de la lista</p>
-              <p className="text-sm text-slate-300 mt-1">Para ver su historial de compras y totales</p>
+              <p className="text-base font-medium text-[#d6c0a5]">Seleccioná un cliente de la lista</p>
+              <p className="text-sm text-[#c7a17d] mt-1">Para ver su historial de compras y totales</p>
             </div>
           ) : (
             <PanelCliente

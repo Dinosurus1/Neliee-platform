@@ -19,8 +19,8 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background: #F1F4F8;
-  color: #0F172A;
+  background: #1a140f;
+  color: #f8d7b4;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -48,8 +48,10 @@ body {
 
 /* ── Card ───────────────────────── */
 .card {
-  @apply bg-white rounded-2xl;
+  @apply rounded-2xl;
+  background: #2a1f16;
   box-shadow: var(--card-shadow);
+  border: 1px solid rgba(192,150,107,0.16);
 }
 
 /* ── Status badge ───────────────── */
@@ -72,9 +74,19 @@ body {
 
 /* ── Input base ─────────────────── */
 .input {
-  @apply w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800
-         placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400
+  @apply w-full px-3.5 py-2.5 rounded-xl text-sm
          transition-all duration-150;
+  background: #1a140f;
+  border: 1px solid rgba(192,150,107,0.24);
+  color: #f8d7b4;
+}
+.input::placeholder {
+  color: #9f8568;
+}
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(239,175,107,0.15);
+  border-color: #efaf6b;
 }
 
 .btn-primary {
@@ -83,19 +95,34 @@ body {
 }
 
 .btn-outline {
-  @apply bg-transparent hover:bg-slate-50 text-slate-700 font-semibold text-sm
-         px-5 py-2.5 rounded-xl border border-slate-200 transition-all duration-150;
+  @apply bg-transparent font-semibold text-sm
+         px-5 py-2.5 rounded-xl transition-all duration-150;
+  border: 1px solid rgba(192,150,107,0.24);
+  color: #f8d7b4;
+}
+.btn-outline:hover {
+  background: rgba(239,175,107,0.08);
 }
 
 /* ── Table ──────────────────────── */
 .data-table { @apply w-full text-sm; }
 .data-table thead th {
-  @apply py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-50/80 border-b border-slate-100;
+  @apply py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider;
+  color: #d6c0a5;
+  background: rgba(79, 63, 52, 0.35);
+  border-bottom: 1px solid rgba(192,150,107,0.16);
 }
 .data-table tbody tr {
-  @apply border-b border-slate-50 hover:bg-amber-50/40 transition-colors duration-100;
+  @apply border-b transition-colors duration-100;
+  border-color: rgba(192,150,107,0.12);
 }
-.data-table tbody td { @apply py-3.5 px-4 text-slate-700; }
+.data-table tbody tr:hover {
+  background: rgba(239,175,107,0.08);
+}
+.data-table tbody td {
+  @apply py-3.5 px-4;
+  color: #e9d7ba;
+}
 
 /* ── Stat card accent bars ──────── */
 .stat-bar-blue   { @apply border-l-4 border-blue-500; }
@@ -111,7 +138,9 @@ body {
 }
 @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
 .modal-box {
-  @apply bg-white rounded-2xl shadow-2xl flex flex-col;
+  @apply rounded-2xl shadow-2xl flex flex-col;
+  background: #2a1f16;
+  border: 1px solid rgba(192,150,107,0.16);
   max-height: 92vh;
   animation: slideUp .2s ease;
 }

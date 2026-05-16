@@ -16,7 +16,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-page)" }}>
-      <div className="border-b bg-white px-8 py-8" style={{ borderColor: "var(--border-warm)" }}>
+      <div className="border-b bg-[#5c4033] px-8 py-8" style={{ borderColor: "var(--border-warm)" }}>
         <h1 className="font-display text-2xl font-bold text-[var(--brown-dark)]">Panel de administración</h1>
         <p className="mt-1 font-body text-sm text-[var(--brown-mid)]">Resumen general de la plataforma Neliee</p>
       </div>

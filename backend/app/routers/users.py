@@ -9,11 +9,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from sqlalchemy.orm import selectinload
 from app.core.dependencies import get_db, require_admin
 from app.core.security import hash_password
-from app.models.models import User
+from app.models.models import Enrollment, User
 from app.schemas.user import UserCreate, UserOut, UserUpdate
+
 
 router = APIRouter()
 
@@ -24,8 +25,13 @@ async def list_users(
     _: User = Depends(require_admin),
 ):
     result = await db.execute(
-        select(User).where(User.role == "employee").order_by(User.full_name)
+    select(User)
+    .options(
+        selectinload(User.enrollments).selectinload(Enrollment.course)
     )
+    .where(User.role == "employee")
+    .order_by(User.full_name)
+)
     return result.scalars().all()
 
 # Solo admins pueden crear/editar/eliminar usuarios, no pueden cambiar roles ni eliminar admins existentes
@@ -48,7 +54,7 @@ async def create_user(
     )
     db.add(user)
     await db.flush()
-    await db.refresh(user)
+    await db.refresh(user, attribute_names=["enrollments"])
     return user
 
 # Solo admins pueden editar usuarios, no pueden cambiar roles ni eliminar admins existentes
@@ -74,7 +80,7 @@ async def update_user(
         user.is_active = payload.is_active
 
     await db.flush()
-    await db.refresh(user)
+    await db.refresh(user, attribute_names=["enrollments"])
     return user
 
 #El endpoint de eliminación es opcional, se puede deshabilitar para evitar borrados accidentales. Si se implementa, solo admins pueden eliminar usuarios, no pueden eliminar admins existentes.
