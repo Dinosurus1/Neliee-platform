@@ -1,19 +1,19 @@
 /**
- * Dado un objeto orden (con orden.producto.medidas y orden.medida_id),
- * devuelve { medida, precioUnitario, subtotal }.
+ * Dado un objeto orden, devuelve { precioUnitario, subtotal }.
  *
- * Si la orden no tiene medida asignada o la medida no tiene precio_base,
- * los valores numéricos serán null.
+ * El backend guarda el precio negociado en orden.precio_unitario
+ * (se edita inline desde la tabla de Datasync).
+ * medida.precio_base es solo el precio SUGERIDO al crear la orden,
+ * no el precio final — por eso no lo leemos acá.
  */
 export const calcPrecioOrden = (orden) => {
-  const medida = orden.producto?.medidas?.find(m => m.id === orden.medida_id) ?? null;
-  const precioUnitario = medida?.precio_base ?? null;
+  const precioUnitario = orden.precio_unitario ?? null;
   const subtotal =
     precioUnitario !== null
       ? precioUnitario * (orden.cantidad ?? 1)
       : null;
 
-  return { medida, precioUnitario, subtotal };
+  return { precioUnitario, subtotal };
 };
 
 /**
@@ -21,8 +21,8 @@ export const calcPrecioOrden = (orden) => {
  * Ej: 25000 → "$25.000"
  */
 export const COP = (v) =>
-  new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
     minimumFractionDigits: 0,
   }).format(v ?? 0);
