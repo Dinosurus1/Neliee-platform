@@ -138,3 +138,46 @@ class Enrollment(Base):
 
     def __repr__(self) -> str:
         return f"<Enrollment user={self.user_id} course={self.course_id}>"
+    
+class LoginAttempt(Base):
+    __tablename__ = "login_attempts"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    tfa_code: Mapped[str | None] = mapped_column(String(6), nullable=True )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    successful: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    def __repr__(self) -> str:
+        status = "SUCCESS" if self.successful else "FAILURE"
+        return f"<LoginAttempt {self.email} at {self.timestamp} - {status}>"
+
+class DeviceSession(Base):
+    __tablename__ = "device_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    device_info: Mapped[str] = mapped_column(String(255), nullable=False)
+    last_active: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    user: Mapped["User"] = relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<DeviceSession user_id={self.user_id} device='{self.device_info}'>"

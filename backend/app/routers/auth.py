@@ -56,4 +56,4 @@ async def login(
 @router.get("/me", response_model=UserOut)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Retorna los datos del usuario autenticado."""
-    return current_user
+    return UserOut.model_validate(current_user)
