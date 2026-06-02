@@ -8,7 +8,7 @@ from typing import Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from app.core.config import settings
+from .config import settings
 
 
 #hashing de contraseñas

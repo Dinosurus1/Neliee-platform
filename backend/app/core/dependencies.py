@@ -16,9 +16,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.security import decode_token
-from app.db.database import get_db
-from app.models.models import Enrollment, User
+from .security import decode_token
+from ..db.database import get_db
+from ..models.models import Enrollment, User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 

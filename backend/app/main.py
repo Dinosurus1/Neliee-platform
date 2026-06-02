@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from app.core.config import settings
-from app.db.database import engine
-from app.db.init_db import init_db
-from app.routers import auth, users, courses, enrollments
+from .core.config import settings
+from .db.database import engine
+from .db.init_db import init_db
+from .routers import auth, users, courses, enrollments
 
 
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "main:app",
+        app,
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,

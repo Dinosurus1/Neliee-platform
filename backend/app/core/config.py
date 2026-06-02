@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480 # 8 horas
 
     #en produccion [https://neliee.com, https://admin.neliee.com
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "https://fits-literacy-electric-feed.trycloudflare.com"]
     ALLOWED_HOSTS: List[str] = ["*"]
 
     #admin seed (primer arranque)
@@ -36,6 +36,15 @@ class Settings(BaseSettings):
     FIRST_ADMIN_EMAIL: str = "admin@neelie.com"
     FIRST_ADMIN_PASSWORD: str = "admin1234" #cambiar tras primer login
 
+
+    #correo 
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = ""
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str = "smtp.gmail.com"
+    FRONTEND_URL: str = "http://localhost:5173"
+    
 # Función para cargar la configuración con caching para evitar recargas innecesarias
 @lru_cache()
 def get_settings() -> Settings:

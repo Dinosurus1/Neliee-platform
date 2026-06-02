@@ -7,11 +7,11 @@
 
 from sqlalchemy import select
 
-from app.core.config import settings
-from app.core.security import hash_password
-from app.db.database import engine, AsyncSessionLocal
-from app.models import models  # Importar para que Base conozca los modelos
-from app.db.database import Base
+from ..core.config import settings
+from ..core.security import hash_password
+from .database import engine, AsyncSessionLocal
+from ..models import models  # Importar para que Base conozca los modelos
+from .database import Base
 
 
 async def init_db() -> None:

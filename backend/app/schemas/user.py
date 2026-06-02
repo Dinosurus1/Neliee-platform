@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, field_validator
 
 # NUEVO
-from app.schemas.enrollment import EnrollmentOut
+from .enrollment import EnrollmentOut
 
 
 class UserCreate(BaseModel):

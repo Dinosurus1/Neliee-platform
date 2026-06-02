@@ -6,11 +6,12 @@ export default defineConfig({
   server: {
     port: 5173,
     allowedHosts: [
-      "congressional-legs-metabolism-ballot.trycloudflare.com",
+      "categories-complete-cet-pretty.trycloudflare.com",
       "localhost",
     ],
     proxy: {
       "/api": {
+
         target: "http://localhost:8000",
         changeOrigin: true,
       },

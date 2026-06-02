@@ -14,9 +14,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user, get_db, require_admin
-from app.models.models import Course, User
-from app.schemas.course import CourseCreate, CourseOut, CourseUpdate
+from ..core.dependencies import get_current_user, get_db, require_admin
+from ..models.models import Course, User
+from ..schemas.course import CourseCreate, CourseOut, CourseUpdate
 
 router = APIRouter()
 

@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from pydantic import BaseModel
-from app.schemas.course import CourseOut
+from .course import CourseOut
 
 #creacion de inscripcion (admin), no se necesita update porque solo se puede marcar como completada, lo cual se hace con un endpoint específico
 class EnrollmentCreate(BaseModel):

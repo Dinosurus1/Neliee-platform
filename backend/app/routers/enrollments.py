@@ -15,9 +15,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.dependencies import get_current_user, get_db, require_admin
-from app.models.models import Enrollment, User
-from app.schemas.enrollment import EnrollmentCreate, EnrollmentOut
+from ..core.dependencies import get_current_user, get_db, require_admin
+from ..models.models import Enrollment, User
+from ..schemas.enrollment import EnrollmentCreate, EnrollmentOut
 
 
 router = APIRouter()
