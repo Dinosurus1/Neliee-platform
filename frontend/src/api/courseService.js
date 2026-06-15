@@ -13,20 +13,21 @@ export async function markCourseComplete(enrollmentId) {
 
 // Admin: todos los cursos
 export async function getAllCourses() {
-  const { data } = await axiosClient.get("/courses/admin");
+  const { data } = await axiosClient.get("/courses");
   return data;
 }
 
+
+
 export async function createCourse(payload) {
-  const { data } = await axiosClient.post("/courses/admin", payload);
+  const { data } = await axiosClient.post("/courses", payload);
   return data;
 }
 
 export async function updateCourse(courseId, payload) {
-  const { data } = await axiosClient.patch(`/courses/admin/${courseId}`, payload);
+  const { data } = await axiosClient.patch(`/courses/${courseId}`, payload);
   return data;
 }
-
 export async function deleteCourse(courseId) {
-  await axiosClient.delete(`/courses/admin/${courseId}`);
+  await axiosClient.delete(`/courses/${courseId}`);
 }
