@@ -2,7 +2,6 @@
 # Levanta PostgreSQL local para desarrollo.
 # La app (backend + frontend) se corre sin Docker (npm run dev / uvicorn).
 
-version: "3.9"
 
 services:
   postgres:
@@ -11,14 +10,14 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER:     postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: NlK5rpwe8gSr36aSSuKvu87S2kiylgJVufvXe8WYBV4
       POSTGRES_DB:       Neliee_db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready :-U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,10 +27,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER:     postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: SzK3I8pAE-wqizn-xvx90ESUypXx32XxvLOHvpk-d2w
       POSTGRES_DB:       dashboard_db
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata_dashboard:/var/lib/postgresql/data
     healthcheck:

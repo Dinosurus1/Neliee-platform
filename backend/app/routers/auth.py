@@ -13,13 +13,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.dependencies import get_current_user, get_db
-from ..core.security import create_access_token, verify_password
+from ..core.security import create_access_token, verify_password, hash_password
 from ..models.models import User
 from ..schemas.auth import Token
 from ..schemas.user import UserOut
 
 router = APIRouter()
 
+_DUMMY_HASH = str = hash_password("_neliee_timing_protection_sentinel_value_")
 
 @router.post("/login", response_model=Token)
 async def login(
@@ -32,8 +33,11 @@ async def login(
     """
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
-
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    
+    hash_verificar = user.hashed_password if user else _DUMMY_HASH
+    password_valida = verify_password(form_data.password, hash_verificar)
+    
+    if not user or not password_valida:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos.",
@@ -47,7 +51,7 @@ async def login(
         )
 
     token = create_access_token(
-        subject=str(user.id),
+        subject= (user.id),
         extra_claims={"role": user.role, "name": user.full_name},
     )
     return Token(access_token=token, token_type="bearer", role=user.role)

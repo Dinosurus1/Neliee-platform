@@ -11,12 +11,12 @@ export async function createUser(payload) {
 }
 
 export async function updateUser(userId, payload) {
-  const { data } = await axiosClient.patch(`/admin/users${userId}`, payload);
+  const { data } = await axiosClient.patch(`/admin/users/${userId}`, payload);
   return data;
 }
 
 export async function deleteUser(userId) {
-  await axiosClient.delete(`/admin/users${userId}`);
+  await axiosClient.delete(`/admin/users/${userId}`);
 }
 
 // Inscripciones
@@ -26,5 +26,5 @@ export async function enrollUser(userId, courseId) {
 }
 
 export async function removeEnrollment(enrollmentId) {
-  await axiosClient.delete(`/enrollments/admin${enrollmentId}`);
+  await axiosClient.delete(`/enrollments/admin/${enrollmentId}`);
 }

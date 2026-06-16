@@ -20,14 +20,14 @@ export async function getAllCourses() {
 
 
 export async function createCourse(payload) {
-  const { data } = await axiosClient.post("/courses", payload);
+  const { data } = await axiosClient.post("/courses/admin", payload);
   return data;
 }
 
 export async function updateCourse(courseId, payload) {
-  const { data } = await axiosClient.patch(`/courses/${courseId}`, payload);
+  const { data } = await axiosClient.patch(`/courses/admin/${courseId}`, payload);
   return data;
 }
 export async function deleteCourse(courseId) {
-  await axiosClient.delete(`/courses/${courseId}`);
+  await axiosClient.delete(`/courses/admin/${courseId}`);
 }

@@ -50,7 +50,7 @@ async def create_user(
         full_name=payload.full_name,
         email=payload.email,
         hashed_password=hash_password(payload.password),
-        role=payload.role,
+        role="employee",
     )
     db.add(user)
     await db.flush()
@@ -63,8 +63,18 @@ async def update_user(
     user_id: uuid.UUID,
     payload: UserUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_admin: User = Depends(require_admin),
 ):
+    if user_id == current_admin.id:
+        raise HTTPException(status_code=400, detail="No puedes modificar tu propia cuenta desde aquí.")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuaria no encontrada.")
+    if user.role == "admin":
+        raise HTTPException(status_code=403, detail="No puedes modificar cuentas de administrador.")
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -88,10 +98,12 @@ async def update_user(
 async def delete_user(
     user_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_admin: User = Depends(require_admin),
 ):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Usuaria no encontrada.")
+    if user.role == "admin":
+        raise HTTPException(status_code=403, detail="No puedes eliminar cuentas de administrador.")
     await db.delete(user)

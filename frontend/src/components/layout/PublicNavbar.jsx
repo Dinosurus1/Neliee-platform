@@ -60,7 +60,7 @@ export default function PublicNavbar() {
           >
             Iniciar sesión
           </Link>
-          <Link
+          {/*<Link
             to="/register"
             className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white rounded-lg
                        transition-all duration-200 hover:-translate-y-px whitespace-nowrap
@@ -68,7 +68,7 @@ export default function PublicNavbar() {
             style={{ background: "linear-gradient(135deg, #7e4731, #9a5640)" }}
           >
             Registrarse
-          </Link>
+          </Link> */}
         </div>
 
       </nav>

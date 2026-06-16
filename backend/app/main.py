@@ -4,13 +4,12 @@
 
 
 from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request                                 # ← Request agregado
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-
-from .core.config import settings
+from starlette.middleware.base import BaseHTTPMiddleware            # ← nuevo import
+from .core.config import Settings
 from .db.database import engine
 from .db.init_db import init_db
 from .routers import auth, users, courses, enrollments
@@ -32,11 +31,11 @@ async def lifespan(app: FastAPI):
 # Instancia principal
 
 app = FastAPI(
-    title=settings.PROJECT_NAME,
+    title=Settings.PROJECT_NAME,
     version="1.0.0",
     description="API para la plataforma empresarial + LMS interno.",
-    docs_url="/api/docs" if settings.DEBUG else None,   # Ocultar en producción
-    redoc_url="/api/redoc" if settings.DEBUG else None,
+    docs_url="/api/docs" if Settings.DEBUG else None,   # Ocultar en producción
+    redoc_url="/api/redoc" if Settings.DEBUG else None,
     lifespan=lifespan,
 )
 
@@ -48,17 +47,30 @@ app = FastAPI(
 # CORS — ajustar ALLOWED_ORIGINS en .env para producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,   # ["http://localhost:5173"] en dev
+    allow_origins=Settings.ALLOWED_ORIGINS,  
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],   # ← específico
+    allow_headers=["Authorization", "Content-Type"],  
 )
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Agrega headers de seguridad HTTP a todas las respuestas."""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["X-XSS-Protection"] = "0"
+        if not Settings.DEBUG:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
 # Hosts de confianza (hardening básico en producción)
-if not settings.DEBUG:
+if not Settings.DEBUG:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=settings.ALLOWED_HOSTS,
+        allowed_hosts=Settings.ALLOWED_HOSTS,
     )
 
 
@@ -91,6 +103,6 @@ if __name__ == "__main__":
         app,
         host="0.0.0.0",
         port=8000,
-        reload=settings.DEBUG,
-        log_level="debug" if settings.DEBUG else "info",
+        reload=Settings.DEBUG,
+        log_level="debug" if Settings.DEBUG else "info",
     )

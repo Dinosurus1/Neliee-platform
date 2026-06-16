@@ -8,7 +8,7 @@ from typing import Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from .config import settings
+from .config import Settings
 
 
 #hashing de contraseñas
@@ -27,7 +27,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(subject: Any, extra_claims: dict | None = None) -> str:
     #genera un JWT firmado 'subject' es normalmente el user_id (str) 'extra_claims' puede incluir {"role": "admin"} u otros datos relevantes para autorizacion en el frontend
 
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=Settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     payload = {
         "sub": str(subject),
@@ -38,9 +38,9 @@ def create_access_token(subject: Any, extra_claims: dict | None = None) -> str:
     if extra_claims:
         payload.update(extra_claims)
     
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return jwt.encode(payload, Settings.SECRET_KEY, algorithm=Settings.ALGORITHM)
 
 
 def decode_token(token: str) -> dict:
     #decodifica y verifica un JWT, devuelve el payload o lanza JWTError si no es válido
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    return jwt.decode(token, Settings.SECRET_KEY, algorithms=[Settings.ALGORITHM])

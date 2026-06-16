@@ -5,16 +5,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from typing import AsyncGenerator
-from ..core.config import settings
+from ..core.config import Settings
 
 
 #engine asincrono
 
 engine = create_async_engine(
-    settings.DATABASE_URL, 
-    echo=settings.DEBUG, #log SQL en consola en modo debug
+    Settings.DATABASE_URL, 
+    echo=False #log SQL en consola en modo debug
     pool_pre_ping=True, #reconecta si la conexión se pierde
-
     pool_size=5, #suficiente para 30 usuarios concurrentes, ajustar según necesidades
     max_overflow=10, #permitir picos de hasta 15 conexiones
 )

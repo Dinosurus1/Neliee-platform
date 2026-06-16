@@ -14,13 +14,21 @@ class UserCreate(BaseModel):
     full_name: str
     email: EmailStr
     password: str
-    role: Literal["employee", "admin"] = "employee"
+    role: Literal["employee"] = "employee"
 
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("La contraseña debe tener al menos 8 caracteres.")
+        if len(v) > 100:
+            raise ValueError("La contraseña no puede superar 100 caracteres.")   # ← DoS bcrypt
+        if not any(c.isupper() for c in v):
+            raise ValueError("La contraseña debe contener al menos una mayúscula.")
+        if not any(c.islower() for c in v):
+            raise ValueError("La contraseña debe contener al menos una minúscula.")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("La contraseña debe contener al menos un número.")
         return v
 
 
