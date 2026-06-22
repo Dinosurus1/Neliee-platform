@@ -1,0 +1,943 @@
+# FASE 2A — Diseño Profesional del Sistema de Autenticación
+
+---
+
+## 1. PROBLEMAS DEL DISEÑO ACTUAL
+
+### 1.1 Limitaciones estructurales del modelo de tokens
+
+El sistema actual emite un único token JWT con 8 horas de validez que se almacena en `localStorage` vía Zustand `persist`. Esto crea una contradicción fundamental: si el token vive 8 horas en localStorage para mantener la sesión, está permanentemente expuesto a XSS. Si se acorta la duración, la experiencia de usuario se degrada inaceptablemente al obligar re-login frecuente.
+
+Esta tensión no tiene solución dentro del modelo de token único. La única salida arquitectónica es separar responsabilidades con dos tokens de naturaleza distinta.
+
+### 1.2 Logout sin efecto real en el servidor
+
+El logout actual es puramente cosmético: limpia el estado del cliente pero el JWT sigue siendo criptográficamente válido hasta su expiración. No existe ninguna forma de revocar un token comprometido, forzar re-autenticación tras un cambio de contraseña, o cerrar sesión en otros dispositivos. Si un empleado es despedido, sus tokens activos siguen funcionando durante horas.
+
+### 1.3 Infraestructura de seguridad diseñada pero huérfana
+
+El proyecto tiene un diseño de intenciones correcto: existen `LoginAttempt` con campos para 2FA, `DeviceSession` para seguimiento de dispositivos, y esquemas en `login.py` y `register.py`. Pero ninguno de estos modelos está conectado a ningún router o lógica de negocio. Esto crea una deuda técnica activa: las tablas se crean en la BD, ocupan espacio, y generan la falsa impresión de que estas protecciones existen.
+
+El modelo `LoginAttempt` actual mezcla responsabilidades: intenta ser registro de auditoría, registro de 2FA y registro de brute-force simultáneamente. Esto dificulta su uso efectivo para cualquiera de los tres propósitos.
+
+### 1.4 Rol embebido en el JWT crea estado inconsistente
+
+El payload actual incluye `{"role": "admin"}` en el token. Si un admin baja a `employee` en la base de datos, su token anterior sigue afirmando que es admin durante las horas restantes de validez. El backend no puede detectar este desfase sin añadir una consulta a BD en cada request, lo que elimina el principal beneficio de los JWT.
+
+### 1.5 Escalabilidad de roles insuficiente para el roadmap
+
+El sistema binario `employee/admin` no puede soportar el roadmap futuro. Un ecommerce necesita clientes externos con acceso limitado. Un ERP necesita managers con acceso parcial. Una plataforma enterprise necesita super_admins que puedan gestionar a los admins. Agregar roles como columna de texto libre a futuro generará inconsistencias en datos históricos.
+
+### 1.6 Ausencia total de flujos de identidad
+
+No existe registro público, verificación de email, ni recuperación de contraseña. El `FIRST_ADMIN_EMAIL` con contraseña hardcodeada es el único mecanismo de creación de usuarios. Esto es aceptable en MVP interno, pero es un bloqueador para cualquier expansión hacia ecommerce o self-service.
+
+### 1.7 Duplicación de usuarios en el futuro ERP + Ecommerce
+
+El ERP actual (dashboard_db) tiene su propia tabla de clientes (`clientes`) completamente desconectada del sistema de usuarios del LMS. Si el ecommerce necesita que un cliente tenga cuenta, y ese cliente ya existe en el ERP, se crearían registros duplicados sin ninguna fuente de verdad unificada.
+
+---
+
+## 2. ARQUITECTURA RECOMENDADA
+
+### 2.1 Decisión central: Access Token en memoria + Refresh Token en cookie httpOnly
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MODELO DE TOKENS                         │
+│                                                             │
+│  ACCESS TOKEN                    REFRESH TOKEN             │
+│  ─────────────                   ───────────────           │
+│  Tipo: JWT firmado               Tipo: opaco (random)      │
+│  Duración: 15 minutos            Duración: 7-30 días       │
+│  Almacén: Memoria JS             Almacén: Cookie httpOnly  │
+│  (Zustand sin persist)           (Secure, SameSite=Strict) │
+│  Transmisión: Authorization      Transmisión: Automática   │
+│  header                          por el navegador          │
+│  Payload: user_id, role,         Payload: ninguno          │
+│           user_type              (solo un string random)   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**¿Por qué tokens opacos para refresh y no JWT?**
+Un refresh token JWT sería verificable sin consultar la base de datos, lo que impediría la revocación real. El refresh token opaco es inútil sin su registro en BD, lo que permite invalidación instantánea. La penalización de una consulta extra solo ocurre cada 15 minutos (al renovar), no en cada request.
+
+**¿Por qué access token en memoria y no en cookie?**
+Si ambos tokens estuvieran en cookies, el access token viajaría automáticamente en todas las peticiones incluyendo las cross-site, aumentando la superficie CSRF. El access token en memoria (Zustand sin persist) se destruye automáticamente al cerrar el tab, añadiendo una capa de protección ante dispositivos compartidos.
+
+### 2.2 Rotación de refresh tokens con detección de reuso
+
+Cada vez que se usa un refresh token, se invalida y se emite uno nuevo. Los tokens se organizan en "familias": todos los tokens derivados de un login inicial comparten el mismo `family_id`. Si un refresh token ya revocado es presentado, significa que alguien está intentando reusar un token antiguo (posible robo). La respuesta es revocar toda la familia y forzar re-login global en todos los dispositivos.
+
+```
+Login inicial → RT-A (familia: F1)
+  Primer refresh → RT-A revocado, RT-B emitido (familia: F1)
+    Segundo refresh → RT-B revocado, RT-C emitido (familia: F1)
+    
+  Si alguien usa RT-A nuevamente:
+    RT-A ya está revocado → detectar reuso → revocar F1 completa
+    Todos los dispositivos con tokens de F1 pierden acceso
+```
+
+### 2.3 Algoritmo RS256 para arquitectura multi-backend
+
+El sistema actual usa HS256 (simétrico): cualquier servicio que valide tokens necesita la misma clave secreta que los firma. Compartir esa clave entre LMS backend, ERP backend y futuro ecommerce backend crea el riesgo de que comprometer cualquier servicio comprometa todo el sistema.
+
+**Recomendación: migrar a RS256 (asimétrico)**
+
+```
+                    ┌─────────────────┐
+                    │   AUTH SERVICE  │
+                    │   (LMS Backend) │
+                    │                 │
+                    │  PRIVATE KEY    │ ← solo este servicio firma tokens
+                    └────────┬────────┘
+                             │ JWT firmado con clave privada
+                    ┌────────┴────────────────────────┐
+                    │                                 │
+              ┌─────▼──────┐               ┌──────────▼──────┐
+              │ LMS Backend│               │  ERP Backend    │
+              │            │               │                 │
+              │ PUBLIC KEY │               │  PUBLIC KEY     │
+              │ (solo verif│               │  (solo verif)   │
+              └────────────┘               └─────────────────┘
+```
+
+Cada servicio tiene la clave pública para verificar tokens, pero ninguno puede crearlos. Agregar un nuevo microservicio en el futuro solo requiere darle la clave pública, sin exponer secretos.
+
+### 2.4 Ventajas del diseño propuesto
+
+- **Logout real:** revocar refresh token en BD = sesión muerta inmediatamente
+- **Sin XSS de tokens:** access token en memoria, refresh en cookie httpOnly = JavaScript no puede acceder a ninguno
+- **Refresco silencioso:** el cliente renueva el access token automáticamente cuando expira sin intervención del usuario
+- **Detección de robo:** el sistema de familias detecta si un refresh token fue robado y reusado
+- **Escalabilidad de servicios:** RS256 permite añadir backends sin compartir secretos
+
+### 2.5 Desventajas y compromisos aceptados
+
+- **Pérdida de sesión al cerrar navegador:** el access token en memoria se pierde. Solución: el refresh token en cookie reconstruye el access token automáticamente al abrir el navegador de nuevo
+- **Una consulta a BD por refresh:** cada 15 minutos se consulta la tabla `refresh_tokens`. Con volúmenes bajos (LMS interno) esto es inapreciable; con ecommerce a escala, se agregaría Redis como caché
+- **Complejidad en el cliente:** el frontend necesita lógica de "silent refresh" — detectar access token expirado y renovarlo automáticamente antes de que fallen las peticiones
+
+---
+
+## 3. MODELO DE BASE DE DATOS
+
+### 3.1 Tabla `users` — Extendida
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | Identificador único |
+| `full_name` | VARCHAR(120), NOT NULL | Nombre completo |
+| `email` | VARCHAR(255), UNIQUE, NOT NULL | Email principal, indexed |
+| `hashed_password` | VARCHAR(255), **NULLABLE** | Null para usuarios OAuth puro |
+| `role` | ENUM, NOT NULL | employee, manager, admin, super_admin, customer |
+| `user_type` | ENUM, NOT NULL | `internal` (empleados) / `external` (clientes) |
+| `is_active` | BOOLEAN, default TRUE | Cuenta habilitada |
+| `is_email_verified` | BOOLEAN, default FALSE | Email confirmado |
+| `email_verified_at` | TIMESTAMP, NULLABLE | Cuándo fue verificado |
+| `last_login_at` | TIMESTAMP, NULLABLE | Último login exitoso |
+| `failed_login_count` | INTEGER, default 0 | Intentos fallidos consecutivos |
+| `locked_until` | TIMESTAMP, NULLABLE | Bloqueo temporal por brute force |
+| `created_at` | TIMESTAMP, NOT NULL | Fecha de creación |
+| `updated_at` | TIMESTAMP, NOT NULL | Última modificación |
+
+**Índices adicionales:** `(role, is_active)` para filtros de admin, `(user_type, role)` para routing de ecommerce vs LMS.
+
+**Cambios respecto al modelo actual:**
+- Se añaden: `user_type`, `is_email_verified`, `email_verified_at`, `last_login_at`, `failed_login_count`, `locked_until`
+- `hashed_password` pasa a ser NULLABLE (para usuarios que solo tienen Google)
+- `role` pasa de VARCHAR a ENUM para integridad de datos
+
+---
+
+### 3.2 Tabla `refresh_tokens` — Nueva
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | |
+| `user_id` | UUID, FK → users | Propietario del token |
+| `token_hash` | VARCHAR(64), UNIQUE | SHA-256 del token real (nunca se guarda el token en texto plano) |
+| `family_id` | UUID, NOT NULL | Agrupa tokens del mismo login para detección de reuso |
+| `device_session_id` | UUID, FK → device_sessions, NULLABLE | Sesión de dispositivo asociada |
+| `is_revoked` | BOOLEAN, default FALSE | Invalidación explícita |
+| `expires_at` | TIMESTAMP, NOT NULL | Expiración absoluta |
+| `created_at` | TIMESTAMP, NOT NULL | Cuándo fue emitido |
+| `last_used_at` | TIMESTAMP, NULLABLE | Último uso (para detectar tokens dormidos) |
+| `ip_address` | VARCHAR(45), NULLABLE | IP desde donde fue generado |
+
+**Índices:** `token_hash` (búsqueda en refresh), `(user_id, is_revoked)` (revocar todas las sesiones de un usuario), `family_id` (revocar toda una familia).
+
+**Nota sobre seguridad:** el token real nunca se almacena. Solo su hash SHA-256. Si la tabla de tokens es comprometida, los hashes son inútiles sin los tokens originales.
+
+---
+
+### 3.3 Tabla `oauth_accounts` — Nueva
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | |
+| `user_id` | UUID, FK → users | Usuario local vinculado |
+| `provider` | ENUM | `google`, `github` (extensible) |
+| `provider_user_id` | VARCHAR(255), NOT NULL | ID único del usuario en el proveedor |
+| `provider_email` | VARCHAR(255) | Email reportado por el proveedor |
+| `access_token_encrypted` | TEXT, NULLABLE | Token del proveedor, cifrado en reposo |
+| `refresh_token_encrypted` | TEXT, NULLABLE | Refresh del proveedor, cifrado en reposo |
+| `token_expires_at` | TIMESTAMP, NULLABLE | Expiración del token del proveedor |
+| `created_at` | TIMESTAMP | Primera vinculación |
+| `updated_at` | TIMESTAMP | Última actualización de tokens |
+
+**Constraint único:** `(provider, provider_user_id)` — un cuenta de Google no puede estar vinculada a dos usuarios locales.
+
+**Un usuario local puede tener múltiples oauth_accounts** (Google + GitHub en el futuro).
+
+---
+
+### 3.4 Tabla `device_sessions` — Rediseñada
+
+El modelo actual tiene `device_info` y `last_active` pero carece de contexto suficiente para ser útil en seguridad.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | |
+| `user_id` | UUID, FK → users | Propietario |
+| `device_name` | VARCHAR(255) | Nombre legible: "Chrome en Windows", "Safari en iPhone" |
+| `device_fingerprint` | VARCHAR(64) | Hash de user-agent + características del dispositivo |
+| `ip_address` | VARCHAR(45) | IP del login inicial |
+| `last_ip_address` | VARCHAR(45) | IP del uso más reciente |
+| `location` | VARCHAR(100), NULLABLE | Ciudad/País inferido de IP (opcional, herramienta externa) |
+| `user_agent` | TEXT | User-agent completo para referencia |
+| `is_active` | BOOLEAN, default TRUE | Si la sesión está activa |
+| `created_at` | TIMESTAMP | Cuándo se creó la sesión (login) |
+| `last_active_at` | TIMESTAMP | Último uso |
+| `revoked_at` | TIMESTAMP, NULLABLE | Cuándo fue cerrada explícitamente |
+
+**El modelo actual puede migrarse** — los campos `device_info` y `last_active` corresponden a `device_name` y `last_active_at`.
+
+---
+
+### 3.5 Tabla `login_attempts` — Rediseñada
+
+El modelo actual mezcla responsabilidades (auditoría + 2FA). Se separan completamente.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | |
+| `email` | VARCHAR(255), NOT NULL | Email intentado (indexed para rate limiting) |
+| `ip_address` | VARCHAR(45), NOT NULL | IP del intento (indexed para rate limiting) |
+| `user_id` | UUID, FK → users, NULLABLE | Null si el email no existe |
+| `successful` | BOOLEAN, NOT NULL | Resultado del intento |
+| `failure_reason` | ENUM, NULLABLE | `invalid_credentials`, `account_locked`, `unverified_email`, `rate_limited`, `account_inactive` |
+| `user_agent` | VARCHAR(255), NULLABLE | Para correlacionar ataques |
+| `timestamp` | TIMESTAMP, NOT NULL | Indexed para queries de ventana temporal |
+
+**Uso principal:**
+- Rate limiting: `COUNT WHERE ip_address = X AND timestamp > now - 15min`
+- Detección de brute force: `COUNT WHERE email = X AND successful = false AND timestamp > now - 1h`
+- Auditoría: historial de accesos legítimos y fallidos
+
+**Campos eliminados del modelo actual:** `tfa_code`, `expires_at`, `is_used` — estos se moverán a una tabla separada cuando se implemente 2FA real.
+
+---
+
+### 3.6 Tabla `password_reset_tokens` — Nueva
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | |
+| `user_id` | UUID, FK → users | Propietario |
+| `token_hash` | VARCHAR(64), UNIQUE | SHA-256 del token enviado por email |
+| `expires_at` | TIMESTAMP | Expiración (15-30 minutos) |
+| `is_used` | BOOLEAN, default FALSE | Previene reuso |
+| `used_at` | TIMESTAMP, NULLABLE | Cuándo fue consumido |
+| `ip_address` | VARCHAR(45) | IP que solicitó el reset |
+| `created_at` | TIMESTAMP | |
+
+**Regla de negocio:** crear un nuevo token invalida todos los anteriores del mismo usuario.
+
+---
+
+### 3.7 Tabla `email_verification_tokens` — Nueva
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | |
+| `user_id` | UUID, FK → users | |
+| `token_hash` | VARCHAR(64), UNIQUE | SHA-256 del token enviado por email |
+| `new_email` | VARCHAR(255), NULLABLE | Solo para cambio de email, no para verificación inicial |
+| `expires_at` | TIMESTAMP | Expiración (24-48 horas para verificación inicial) |
+| `is_used` | BOOLEAN, default FALSE | |
+| `created_at` | TIMESTAMP | |
+
+---
+
+### 3.8 Tabla `audit_logs` — Nueva (opcional pero recomendada)
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID, PK | |
+| `user_id` | UUID, FK → users, NULLABLE | Null para eventos del sistema |
+| `actor_id` | UUID, NULLABLE | Si un admin actúa sobre otro usuario |
+| `event_type` | ENUM | `login_success`, `login_failure`, `logout`, `token_refresh`, `password_changed`, `password_reset_requested`, `email_verified`, `google_linked`, `google_unlinked`, `account_locked`, `account_unlocked`, `role_changed`, `user_created`, `user_deleted` |
+| `ip_address` | VARCHAR(45) | |
+| `user_agent` | VARCHAR(255) | |
+| `metadata` | JSONB | Contexto adicional (ej: rol anterior/nuevo en cambios de rol) |
+| `created_at` | TIMESTAMP | Indexed para queries de rango |
+
+Esta tabla es append-only. Nunca se actualiza, nunca se elimina. Es el registro de forensics.
+
+---
+
+### 3.9 Diagrama de relaciones conceptual
+
+```
+users
+  │
+  ├──< refresh_tokens          (1 usuario, muchos tokens)
+  │         └── device_sessions (cada refresh asociado a 1 sesión)
+  │
+  ├──< oauth_accounts          (1 usuario, múltiples proveedores)
+  │
+  ├──< device_sessions         (1 usuario, múltiples dispositivos)
+  │
+  ├──< login_attempts          (1 usuario, historial de intentos)
+  │
+  ├──< password_reset_tokens   (1 usuario, tokens de reset)
+  │
+  ├──< email_verification_tokens (1 usuario, tokens de verificación)
+  │
+  ├──< audit_logs              (1 usuario, historial de eventos)
+  │
+  └──< enrollments             (existente, sin cambios)
+```
+
+---
+
+## 4. SISTEMA DE ROLES
+
+### 4.1 Jerarquía de roles internos
+
+```
+super_admin
+    │
+    └── admin
+          │
+          └── manager
+                │
+                └── employee
+```
+
+Los roles son jerárquicos: un rol superior tiene todos los permisos de los inferiores más los propios.
+
+### 4.2 Definición de responsabilidades
+
+**`employee`** — Usuario base del LMS
+- Ver y completar cursos asignados a su cuenta
+- Ver su propio perfil y progreso
+- Sin acceso a gestión de usuarios, cursos o reportes
+- Sin acceso al panel de administración
+
+**`manager`** — Supervisión de equipo (nuevo rol, no existe actualmente)
+- Todo lo de `employee`
+- Ver lista de empleados bajo su supervisión
+- Ver reportes de progreso de su equipo
+- Asignar cursos a los empleados de su equipo
+- No puede crear usuarios, modificar contraseñas, ni acceder a configuración
+- Útil para: jefes de área que necesitan ver métricas de su equipo sin acceso admin total
+
+**`admin`** — Gestión operativa de la plataforma
+- Todo lo de `manager`
+- CRUD de usuarios tipo `employee` y `manager`
+- CRUD de cursos
+- Gestión de inscripciones
+- Ver reportes globales de la plataforma
+- No puede: modificar otros admins, cambiar configuración del sistema, ver audit logs completos, asignar role `admin` o `super_admin`
+
+**`super_admin`** — Control total del sistema
+- Todo lo de `admin`
+- CRUD de usuarios de cualquier rol incluyendo otros admins
+- Asignación de roles incluyendo `admin`
+- Acceso a audit logs completos
+- Configuración del sistema (SECRET_KEY rotation, SMTP, integraciones)
+- Gestión de proveedores OAuth
+- Solo puede ser creado desde la CLI del servidor o por otro super_admin
+- Limitado a 1-3 cuentas en el sistema
+
+**`customer`** — Usuario externo (futuro ecommerce)
+- Sin acceso al LMS ni al panel admin
+- Acceso solo a la tienda online
+- Ver su propio historial de pedidos
+- Gestionar su cuenta y dirección de envío
+- `user_type = external` distingue a estos usuarios de los internos
+- Puede crearse por registro público (sin intervención de admin)
+
+### 4.3 Restricciones de rol cruzado
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                  MATRIZ DE PERMISOS                      │
+│                                                          │
+│              employee manager admin super_admin customer │
+│  Ver LMS         ✓       ✓      ✓       ✓        ✗      │
+│  Completar curso ✓       ✓      ✓       ✓        ✗      │
+│  Ver equipo      ✗       ✓      ✓       ✓        ✗      │
+│  CRUD usuarios   ✗       ✗      ✓*      ✓        ✗      │
+│  CRUD cursos     ✗       ✗      ✓       ✓        ✗      │
+│  Gestión roles   ✗       ✗      ✗       ✓        ✗      │
+│  Audit logs      ✗       ✗      ✗       ✓        ✗      │
+│  Ecommerce       ✗       ✗      ✗       ✗        ✓      │
+│  Config sistema  ✗       ✗      ✗       ✓        ✗      │
+│                                                          │
+│  * Solo puede crear/modificar employee y manager        │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 4.4 Rol en el JWT vs en la base de datos
+
+El JWT incluirá el rol para evitar una consulta a BD en cada request. Pero dado que los roles raramente cambian y el access token expira en 15 minutos, el desfase máximo entre el rol en el token y el rol real en BD es de 15 minutos — aceptable para este sistema.
+
+Si se necesita revocación inmediata de privilegios (ej: despido urgente), el flujo es: desactivar cuenta → revocar todos los refresh tokens → el access token actual expira en máximo 15 minutos.
+
+---
+
+## 5. FLUJOS DE AUTENTICACIÓN
+
+### 5.1 Login tradicional (email + contraseña)
+
+```
+CLIENTE                          BACKEND                         BASE DE DATOS
+   │                                │                                  │
+   │  POST /auth/login              │                                  │
+   │  {email, password}             │                                  │
+   │───────────────────────────────>│                                  │
+   │                                │  1. Verificar rate limit         │
+   │                                │     (por IP y por email)         │
+   │                                │──────────────────────────────────>
+   │                                │  2. SELECT user WHERE email=X    │
+   │                                │<─────────────────────────────────│
+   │                                │  3. bcrypt.verify()              │
+   │                                │     (siempre ejecutar,           │
+   │                                │      incluso si user=null)       │
+   │                                │  4. Verificar is_active          │
+   │                                │  5. Verificar is_email_verified  │
+   │                                │  6. Verificar locked_until       │
+   │                                │                                  │
+   │         SI FALLA               │  7. INSERT login_attempts        │
+   │         ──────────             │     (successful=false)           │
+   │                                │  8. UPDATE failed_login_count++  │
+   │                                │  9. Si count >= 5:               │
+   │                                │     SET locked_until = +15min    │
+   │  401 Unauthorized              │                                  │
+   │<───────────────────────────────│                                  │
+   │                                │                                  │
+   │         SI ÉXITO               │  10. RESET failed_login_count=0  │
+   │         ──────────             │  11. UPDATE last_login_at        │
+   │                                │  12. INSERT device_sessions      │
+   │                                │  13. Generar AT (JWT, 15 min)    │
+   │                                │  14. Generar RT (random, 7 días) │
+   │                                │  15. INSERT refresh_tokens       │
+   │                                │      (hash del RT)               │
+   │                                │  16. INSERT login_attempts       │
+   │                                │      (successful=true)           │
+   │                                │  17. INSERT audit_logs           │
+   │                                │                                  │
+   │  200 OK                        │                                  │
+   │  Body: {access_token, user}    │                                  │
+   │  Cookie: refresh_token         │                                  │
+   │  (httpOnly, Secure, SameSite)  │                                  │
+   │<───────────────────────────────│                                  │
+   │                                │                                  │
+   │  Zustand: guardar AT en        │                                  │
+   │  memoria (NO localStorage)     │                                  │
+```
+
+### 5.2 Google OAuth (Authorization Code + PKCE)
+
+```
+CLIENTE                    BACKEND                    GOOGLE
+   │                          │                          │
+   │ Clic "Login con Google"  │                          │
+   │                          │                          │
+   │ GET /auth/google/authorize                          │
+   │─────────────────────────>│                          │
+   │                          │ 1. Generar state (random)│
+   │                          │ 2. Generar code_verifier │
+   │                          │    + code_challenge PKCE │
+   │                          │ 3. Guardar state en sesión│
+   │ Redirect URL de Google   │                          │
+   │<─────────────────────────│                          │
+   │                          │                          │
+   │ Redirigir a Google────────────────────────────────> │
+   │                          │                          │
+   │                          │          Usuario acepta  │
+   │<─────────────────────────────────────────────────── │
+   │ Redirect /auth/google/callback?code=X&state=Y       │
+   │                          │                          │
+   │─────────────────────────>│                          │
+   │                          │ 1. Verificar state       │
+   │                          │ 2. Exchange code+verifier│
+   │                          │────────────────────────> │
+   │                          │<──────────────────────── │
+   │                          │ 3. Obtener userinfo      │
+   │                          │────────────────────────> │
+   │                          │<──────────────────────── │
+   │                          │                          │
+   │                          │ 4. Buscar oauth_accounts │
+   │                          │    WHERE provider=google │
+   │                          │    AND provider_id=X     │
+   │                          │                          │
+   │                          │   ┌─ CASO A: ya existe ──┐
+   │                          │   │  Login directo       │
+   │                          │   └──────────────────────┘
+   │                          │                          │
+   │                          │   ┌─ CASO B: email       ┐
+   │                          │   │  coincide con user   │
+   │                          │   │  existente           │
+   │                          │   │  → Vincular cuenta   │
+   │                          │   │  → Login como ese    │
+   │                          │   │     usuario          │
+   │                          │   └──────────────────────┘
+   │                          │                          │
+   │                          │   ┌─ CASO C: nuevo ──────┐
+   │                          │   │  usuario             │
+   │                          │   │  → Crear user        │
+   │                          │   │  → is_email_verified │
+   │                          │   │    = true (Google    │
+   │                          │   │    ya verificó)      │
+   │                          │   └──────────────────────┘
+   │                          │                          │
+   │                          │ 5. Crear sesión, AT, RT  │
+   │  Redirect /dashboard     │                          │
+   │  con AT en URL fragment  │                          │
+   │  o en body de POST       │                          │
+   │<─────────────────────────│                          │
+```
+
+**Nota sobre el redirect con el token:** el AT no debe ir en la URL como query param (queda en logs de servidor y historial del navegador). La estrategia recomendada es que el callback del backend haga un redirect al frontend con un código de un solo uso de muy corta vida, y el frontend lo intercambia inmediatamente por el AT real.
+
+### 5.3 Renovación silenciosa del access token (Silent Refresh)
+
+```
+CLIENTE (Axios Interceptor)         BACKEND
+   │                                   │
+   │  Petición cualquiera              │
+   │──────────────────────────────────>│
+   │                       401         │
+   │<──────────────────────────────────│
+   │                                   │
+   │  [Interceptor atrapa el 401]      │
+   │  POST /auth/refresh               │
+   │  (cookie httpOnly va automática)  │
+   │──────────────────────────────────>│
+   │                                   │  1. Extraer RT de cookie
+   │                                   │  2. SHA-256(RT) → buscar en DB
+   │                                   │  3. Verificar: not revoked, not expired
+   │                                   │  4. Verificar family_id
+   │                                   │     ¿fue usado antes este token?
+   │                                   │     → SI: revocar toda la familia
+   │                                   │           → 401, forzar re-login
+   │                                   │     → NO: continuar
+   │                                   │  5. Revocar RT actual en DB
+   │                                   │  6. Generar nuevo AT (15 min)
+   │                                   │  7. Generar nuevo RT (7 días)
+   │                                   │  8. INSERT nuevo refresh_token
+   │                                   │  9. UPDATE last_used_at
+   │                                   │
+   │  200 OK                           │
+   │  Body: {access_token}             │
+   │  Cookie: nuevo refresh_token      │
+   │<──────────────────────────────────│
+   │                                   │
+   │  [Interceptor reintenta           │
+   │   la petición original            │
+   │   con el nuevo AT]                │
+   │──────────────────────────────────>│
+```
+
+Este flujo es invisible para el usuario. La renovación ocurre en segundo plano dentro del interceptor de Axios.
+
+### 5.4 Logout (sesión única)
+
+```
+CLIENTE                              BACKEND
+   │                                    │
+   │  POST /auth/logout                 │
+   │  (cookie RT va automática)         │
+   │───────────────────────────────────>│
+   │                                    │  1. Extraer RT de cookie
+   │                                    │  2. Buscar en DB, marcar is_revoked=true
+   │                                    │  3. Marcar device_session is_active=false
+   │                                    │  4. INSERT audit_logs (logout)
+   │  200 OK                            │
+   │  Set-Cookie: refresh_token=        │
+   │  (cookie con fecha pasada          │
+   │   = borrar cookie)                 │
+   │<───────────────────────────────────│
+   │                                    │
+   │  [Zustand: limpiar estado          │
+   │   access_token = null              │
+   │   user = null                      │
+   │   isAuthenticated = false]         │
+   │                                    │
+   │  Redirect /login                   │
+```
+
+### 5.5 Logout de todos los dispositivos
+
+```
+POST /auth/logout/all
+   │
+   ├── Extraer RT de cookie → obtener user_id
+   ├── UPDATE refresh_tokens SET is_revoked=true WHERE user_id=X
+   ├── UPDATE device_sessions SET is_active=false WHERE user_id=X
+   ├── INSERT audit_logs (logout_all)
+   └── Borrar cookie actual
+```
+
+El usuario verá en un hipotético panel de sesiones que todos sus dispositivos han sido desconectados.
+
+### 5.6 Recuperación de contraseña
+
+```
+PASO 1 — Solicitar reset
+
+CLIENTE                              BACKEND
+   │                                    │
+   │  POST /auth/password-reset/request │
+   │  {email: "xxx@yyy.com"}            │
+   │───────────────────────────────────>│
+   │                                    │  1. Buscar usuario por email
+   │                                    │  2. SIEMPRE responder 200
+   │                                    │     (no revelar si existe)
+   │                                    │  Si existe:
+   │                                    │  3. Invalidar reset tokens previos
+   │                                    │  4. Generar token random (32 bytes)
+   │                                    │  5. INSERT password_reset_tokens
+   │                                    │     con SHA-256(token), expira en 15 min
+   │                                    │  6. Enviar email con:
+   │                                    │     link = FRONTEND_URL/reset?token=X
+   │  200 OK                            │
+   │  {"message": "Si el email         │
+   │  existe recibirás instrucciones"}  │
+   │<───────────────────────────────────│
+
+PASO 2 — Confirmar reset
+
+   │  POST /auth/password-reset/confirm │
+   │  {token, new_password}             │
+   │───────────────────────────────────>│
+   │                                    │  1. SHA-256(token) → buscar en DB
+   │                                    │  2. Verificar not used, not expired
+   │                                    │  3. Validar nueva contraseña
+   │                                    │  4. UPDATE user.hashed_password
+   │                                    │  5. UPDATE token: is_used=true
+   │                                    │  6. REVOCAR todos los refresh_tokens
+   │                                    │     del usuario (forzar re-login global)
+   │                                    │  7. DESACTIVAR todas las device_sessions
+   │                                    │  8. INSERT audit_logs (password_changed)
+   │                                    │  9. Enviar email de confirmación
+   │  200 OK                            │
+   │<───────────────────────────────────│
+   │  Redirect /login con mensaje       │
+```
+
+### 5.7 Verificación de email
+
+```
+REGISTRO / CREACIÓN DE CUENTA
+   │
+   ├── Crear usuario con is_email_verified = false
+   ├── Generar token random (32 bytes)
+   ├── INSERT email_verification_tokens (SHA-256, expira en 48h)
+   └── Enviar email con: FRONTEND_URL/verify-email?token=X
+
+VERIFICACIÓN
+   │
+   GET /auth/verify-email?token=X
+   │
+   ├── SHA-256(token) → buscar en DB
+   ├── Verificar not used, not expired
+   ├── UPDATE user: is_email_verified=true, email_verified_at=now
+   ├── UPDATE token: is_used=true
+   ├── INSERT audit_logs (email_verified)
+   └── Redirect /login con mensaje de éxito
+
+USUARIOS DE GOOGLE:
+   └── is_email_verified = true desde el momento de creación
+       (Google ya verificó el email)
+```
+
+---
+
+## 6. INTEGRACIÓN FUTURA CON ERP Y ECOMMERCE
+
+### 6.1 El problema de la identidad fragmentada
+
+Actualmente existen dos sistemas de identidad completamente desconectados:
+- **LMS backend (`Neliee_db`):** tabla `users` con empleados y admins
+- **ERP backend (`dashboard_db`):** tabla `clientes` con clientes comerciales
+
+Si en el futuro un cliente del ERP quiere comprar en el ecommerce y necesita una cuenta, ¿es el mismo usuario que `users`? Sin una estrategia definida ahora, se crearán datos duplicados que eventualmente son imposibles de reconciliar.
+
+### 6.2 Estrategia: Fuente de verdad única de autenticación
+
+```
+                        ┌─────────────────────────┐
+                        │      users (auth DB)     │
+                        │                          │
+                        │  id, email, role,        │
+                        │  user_type               │
+                        │  (internal/external)     │
+                        └────────────┬─────────────┘
+                                     │
+                    ┌────────────────┼────────────────┐
+                    │                │                │
+          ┌─────────▼──────┐ ┌───────▼──────┐ ┌──────▼───────┐
+          │  LMS (interna) │ │ ERP (interna)│ │ Ecommerce    │
+          │                │ │              │ │ (externa)    │
+          │  enrollments   │ │  ordenes     │ │  pedidos     │
+          │  courses       │ │  productos   │ │  carrito     │
+          │                │ │  clientes*   │ │              │
+          └────────────────┘ └──────────────┘ └──────────────┘
+```
+
+**El campo `user_id` en las tablas del ERP y Ecommerce referencia siempre al `users.id` del auth system.**
+
+### 6.3 Tabla de vinculación ERP ↔ Auth (transición)
+
+El ERP actual tiene `clientes` con su propio `id` entero. Para no romper el ERP existente durante la transición, se puede crear una tabla de vinculación:
+
+```
+erp_client_links
+─────────────────
+user_id → users.id    (auth system)
+erp_client_id (int)   (id en tabla clientes de dashboard_db)
+linked_at (timestamp)
+```
+
+Esto permite que un cliente existente del ERP pueda crear su cuenta en el ecommerce y quedar vinculado a su historial previo sin modificar el ERP actual.
+
+### 6.4 Segmentación por user_type en el JWT
+
+El JWT incluirá `user_type` (internal/external) y `role`:
+
+```
+Payload del JWT:
+{
+  "sub": "uuid-del-usuario",
+  "role": "employee",
+  "user_type": "internal",
+  "exp": 1234567890
+}
+```
+
+Cada backend puede tomar decisiones de routing sin consultar la BD:
+- `user_type = internal` → acceso al LMS y ERP
+- `user_type = external` → acceso solo al ecommerce
+- `role = customer` → el frontend muestra la tienda, no el dashboard
+
+### 6.5 Registro público para clientes
+
+Los clientes del ecommerce se registran públicamente. Este flujo es diferente al flujo de creación de empleados (que solo puede hacer un admin):
+
+```
+Registro de empleado:
+  admin → POST /admin/users → crea employee/manager
+
+Registro de cliente:
+  público → POST /auth/register → crea customer
+  (requiere verificación de email antes de poder hacer pedidos)
+```
+
+### 6.6 Arquitectura con RS256 para multi-backend
+
+Cuando el ERP y el ecommerce sean backends separados, todos confiarán en el mismo auth service:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   VALIDACIÓN DE JWT                         │
+│                                                             │
+│  LMS Backend:                                               │
+│    - Verifica firma con PUBLIC KEY                          │
+│    - Acepta: user_type=internal                             │
+│    - Rechaza: user_type=external                            │
+│                                                             │
+│  ERP Backend:                                               │
+│    - Verifica firma con PUBLIC KEY                          │
+│    - Acepta: user_type=internal, role IN (admin, super_admin│
+│              manager)                                       │
+│    - Rechaza: employee sin permisos específicos             │
+│                                                             │
+│  Ecommerce Backend:                                         │
+│    - Verifica firma con PUBLIC KEY                          │
+│    - Acepta: user_type=external, role=customer              │
+│    - Rechaza: user_type=internal (empleados no compran)     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. ROADMAP DE IMPLEMENTACIÓN
+
+Cada fase es **independiente y deployable por separado.** El sistema es funcional al final de cada fase.
+
+---
+
+### FASE 1 — Token seguro y logout real
+**Duración estimada:** 3-5 días | **Prioridad:** Crítica
+
+Objetivo: eliminar el token de localStorage y hacer funcionar el logout real.
+
+Componentes:
+- Crear tabla `refresh_tokens` en BD
+- Endpoint `POST /auth/refresh` que lea cookie httpOnly y rote el token
+- Endpoint `POST /auth/logout` que revoque el refresh token y borre la cookie
+- Modificar `POST /auth/login` para emitir cookie httpOnly además del access token
+- Frontend: remover `persist` de Zustand para el token (guardar solo en memoria)
+- Frontend: interceptor Axios que llame a `/auth/refresh` en 401 antes de propagar el error
+- Reducir duración del access token de 480 minutos a 15 minutos
+
+Al finalizar: JWT ya no está en localStorage, logout es real, sesión se renueva automáticamente.
+
+---
+
+### FASE 2 — Rate limiting y auditoría de intentos
+**Duración estimada:** 2-3 días | **Prioridad:** Crítica
+
+Objetivo: activar la protección contra brute force usando modelos ya existentes.
+
+Componentes:
+- Instalar y configurar `slowapi` (1 dependencia ligera) con límites por IP y por email
+- Activar `LoginAttempt` en el router de login: registrar cada intento con su resultado
+- Lógica de bloqueo: si `failed_login_count >= 5`, bloquear por 15 minutos
+- Agregar campos `failed_login_count` y `locked_until` a la tabla `users`
+- Verificar bloqueo en el flujo de login antes de bcrypt
+- Activar `DeviceSession`: crear registro en cada login exitoso
+
+Al finalizar: brute force protegido, cada login queda registrado, sesiones por dispositivo activas.
+
+---
+
+### FASE 3 — Verificación de email y recuperación de contraseña
+**Duración estimada:** 3-4 días | **Prioridad:** Alta
+
+Objetivo: flujos de identidad básicos que permiten self-service y registro seguro.
+
+Componentes:
+- Crear tablas `password_reset_tokens` y `email_verification_tokens`
+- Agregar campo `is_email_verified` a `users`
+- Activar configuración SMTP (ya existe en `Settings`) para envío de emails
+- Endpoint `POST /auth/password-reset/request`
+- Endpoint `POST /auth/password-reset/confirm`
+- Endpoint `GET /auth/verify-email`
+- Templates de email (HTML simple) para reset y verificación
+- Envío de email de verificación al crear usuario (desde `/admin/users`)
+- Frontend: página de reset de contraseña y página de verificación de email
+
+Al finalizar: recuperación de contraseña funcional, emails de bienvenida con verificación.
+
+---
+
+### FASE 4 — Expansión de roles y registro de clientes
+**Duración estimada:** 2-3 días | **Prioridad:** Media
+
+Objetivo: preparar el sistema de roles para el roadmap futuro.
+
+Componentes:
+- Migrar `role` de VARCHAR a ENUM con: `employee`, `manager`, `admin`, `super_admin`, `customer`
+- Agregar campo `user_type` (internal/external) a `users`
+- Agregar `require_manager`, `require_super_admin` como nuevas dependencies FastAPI
+- Endpoint público `POST /auth/register` para crear cuentas `customer`
+- Proteger endpoint de asignación de rol `admin` y `super_admin` con `require_super_admin`
+- Actualizar guards de React para los nuevos roles
+
+Al finalizar: sistema de roles completo, registro público de clientes habilitado.
+
+---
+
+### FASE 5 — Google OAuth
+**Duración estimada:** 4-5 días | **Prioridad:** Media
+
+Objetivo: login con Google para empleados y clientes.
+
+Componentes:
+- Instalar `authlib` (librería OAuth2 estándar para Python)
+- Crear tabla `oauth_accounts`
+- Configurar Google OAuth en Google Cloud Console
+- Endpoint `GET /auth/google/authorize` (genera URL de Google con state y PKCE)
+- Endpoint `GET /auth/google/callback` (intercambia code por tokens, crea/vincula usuario)
+- Lógica de los tres casos: ya vinculado, vincular a existente, crear nuevo
+- Frontend: botón "Continuar con Google" en LoginPage
+
+Al finalizar: login con Google funcional, cuentas vinculadas, sin duplicados.
+
+---
+
+### FASE 6 — Auditoría completa y panel de sesiones
+**Duración estimada:** 2-3 días | **Prioridad:** Baja
+
+Objetivo: visibilidad completa de la actividad de seguridad.
+
+Componentes:
+- Crear tabla `audit_logs`
+- Agregar logging de eventos en todos los endpoints de auth
+- Endpoint `GET /auth/sessions` — listar sesiones activas del usuario actual
+- Endpoint `DELETE /auth/sessions/{session_id}` — cerrar sesión específica
+- Endpoint `DELETE /auth/sessions` — cerrar todas las sesiones (logout global)
+- Endpoint `GET /admin/audit-logs` (solo super_admin) — historial de eventos
+- Frontend: página de "Mis dispositivos" donde el usuario ve y gestiona sus sesiones
+
+Al finalizar: usuarios pueden ver y cerrar sesiones activas, admins tienen visibilidad completa.
+
+---
+
+### FASE 7 — Migración a RS256 y preparación multi-tenant
+**Duración estimada:** 2-3 días | **Prioridad:** Futura (cuando exista segundo backend activo)
+
+Objetivo: preparar el auth para ser consumido por múltiples backends independientes.
+
+Componentes:
+- Generar par de claves RSA (privada en auth service, pública distribuida)
+- Migrar `create_access_token` de HS256 a RS256
+- Distribuir clave pública al ERP backend
+- Actualizar `decode_token` en cada backend para usar su clave pública
+- Endpoint `GET /.well-known/jwks.json` — expone claves públicas (estándar OIDC)
+- Agregar `user_type` al payload del JWT
+
+Al finalizar: arquitectura preparada para microservicios, cualquier nuevo backend puede validar tokens sin secretos compartidos.
+
+---
+
+### Vista cronológica del roadmap
+
+```
+Semana 1    Semana 2    Semana 3    Semana 4    Semana 5-6  Semana 7
+───────────────────────────────────────────────────────────────────
+FASE 1      FASE 2      FASE 3      FASE 4      FASE 5      FASE 6
+Token       Rate        Email       Roles       Google      Auditoría
+seguro      limiting    flows       expand      OAuth       + Panel
++ Logout    + Audit     + Reset              
+real        attempts    password
+            
+                                                            FASE 7
+                                                            (cuando
+                                                            el ERP
+                                                            sea indep)
+```
+
+---
+
+### Decisión sobre componentes existentes
+
+| Componente actual | Decisión | Motivo |
+|---|---|---|
+| `User` model | **Extender** | Añadir 6 campos, no reescribir |
+| `LoginAttempt` model | **Rediseñar** | Eliminar campos 2FA huérfanos, mantener estructura base |
+| `DeviceSession` model | **Extender** | Añadir campos de IP, fingerprint, is_active |
+| `security.py` bcrypt | **Mantener** | Correcto tal como está |
+| `security.py` JWT | **Extender** | Añadir RS256, reducir expiración a 15min |
+| `schemas/login.py` | **Reemplazar** | Actualmente vacío, crear desde cero |
+| `schemas/register.py` | **Reemplazar** | Actualmente vacío, crear desde cero |
+| `routers/auth.py` | **Extender** | Mantener /login y /me, añadir nuevos endpoints |
+| `axiosClient.js` | **Extender** | Añadir lógica de silent refresh en interceptor de respuesta |
+| `authStore.js` | **Modificar** | Eliminar `persist` del token, mantener datos de usuario |

@@ -1,23 +1,18 @@
-
-#main.py — Entry point de la aplicación FastAPI
-#Plataforma Empresarial + LMS
-
-
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request                                 # ← Request agregado
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware            # ← nuevo import
-from .core.config import Settings
+from starlette.middleware.base import BaseHTTPMiddleware
+
+# 👇 1. Importamos la INSTANCIA 'settings', no la clase
+from .core.config import settings
 from .db.database import engine
 from .db.init_db import init_db
 from .routers import auth, users, courses, enrollments
 
 
-
 # Lifespan: startup / shutdown
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Crea las tablas y ejecuta el seed inicial al arrancar."""
@@ -27,30 +22,26 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-
 # Instancia principal
-
 app = FastAPI(
-    title=Settings.PROJECT_NAME,
+    title=settings.PROJECT_NAME,  # ← Usando la instancia
     version="1.0.0",
     description="API para la plataforma empresarial + LMS interno.",
-    docs_url="/api/docs" if Settings.DEBUG else None,   # Ocultar en producción
-    redoc_url="/api/redoc" if Settings.DEBUG else None,
+    docs_url="/api/docs" if settings.DEBUG else None,
+    redoc_url="/api/redoc" if settings.DEBUG else None,
     lifespan=lifespan,
 )
 
 
-
 # Middlewares
 
-
-# CORS — ajustar ALLOWED_ORIGINS en .env para producción
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=Settings.ALLOWED_ORIGINS,  
+    allow_origins=settings.ALLOWED_ORIGINS,  
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],   # ← específico
-    allow_headers=["Authorization", "Content-Type"],  
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],  # Añadí Accept, útil para Axios
 )
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -62,17 +53,20 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         response.headers["X-XSS-Protection"] = "0"
-        if not Settings.DEBUG:
+        if not settings.DEBUG:
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
-# Hosts de confianza (hardening básico en producción)
-if not Settings.DEBUG:
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+# Hosts de confianza 
+if not settings.DEBUG:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=Settings.ALLOWED_HOSTS,
+        allowed_hosts=settings.ALLOWED_HOSTS,
     )
-
 
 
 # Routers
@@ -85,7 +79,6 @@ app.include_router(courses.router,     prefix=f"{API_PREFIX}/courses",       tag
 app.include_router(enrollments.router, prefix=f"{API_PREFIX}/enrollments",   tags=["Enrollments"])
 
 
-
 # Health check
 
 @app.get("/health", tags=["Health"], include_in_schema=False)
@@ -93,16 +86,16 @@ async def health_check():
     return JSONResponse({"status": "ok", "version": "1.0.0"})
 
 
-
 # Punto de entrada para desarrollo local
 
 if __name__ == "__main__":
     import uvicorn
-
+    
+    
     uvicorn.run(
-        app,
+        "app.main:app", 
         host="0.0.0.0",
         port=8000,
-        reload=Settings.DEBUG,
-        log_level="debug" if Settings.DEBUG else "info",
+        reload=settings.DEBUG,
+        log_level="debug" if settings.DEBUG else "info",
     )

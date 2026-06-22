@@ -8,10 +8,10 @@ Tablas: users, courses, enrollments
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from typing import List
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, func, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -58,6 +58,9 @@ class User(Base):
     enrollments: Mapped[List["Enrollment"]] = relationship(
         "Enrollment", back_populates="user", cascade="all, delete-orphan"
     )
+    refresh_tokens: Mapped[List["RefreshToken"]] = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+        )
 
     def __repr__(self) -> str:
         return f"<User {self.email} [{self.role}]>"
@@ -186,3 +189,30 @@ class DeviceSession(Base):
 
     def __repr__(self) -> str:
         return f"<DeviceSession user_id={self.user_id} device='{self.device_info}'>"
+    
+    
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    token: Mapped[str] = mapped_column(String(512), unique=True, index=True, nullable=False)
+    
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), 
+        default=lambda: datetime.now(timezone.utc) + timedelta(days=30), 
+        nullable=False
+    )
+    is_revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="refresh_tokens")
+
+    def __repr__(self) -> str:
+        return f"<RefreshToken id={self.id} user_id={self.user_id} revoked={self.is_revoked}>"
+        

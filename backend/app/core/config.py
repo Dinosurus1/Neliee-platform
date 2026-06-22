@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "Cambiar en produccion"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     ALLOWED_HOSTS: List[str] = ["*"]
@@ -50,3 +51,8 @@ class Settings(BaseSettings):
             )
         return v
     
+@lru_cache
+def get_settings():
+    return Settings()
+
+settings = get_settings()
