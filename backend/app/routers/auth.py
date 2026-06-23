@@ -6,11 +6,12 @@ Fixes aplicados:
   2. SELECT FOR UPDATE en /refresh para eliminar la race condition.
   3. Transacción única en /refresh (un solo commit).
   4. /logout revoca toda la familia del token, no solo el token presentado.
+  5. [NUEVO] Refresh token migrado a httpOnly cookie — ya no viaja en el body.
 """
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +26,7 @@ from ..core.security import (
     verify_password,
 )
 from ..models.models import LoginAttempt, RefreshToken, User
-from ..schemas.auth import Token, TokenRefresh
+from ..schemas.auth import Token
 from ..schemas.user import UserCreate, UserOut
 
 router = APIRouter()
@@ -36,6 +37,43 @@ _DUMMY_HASH = hash_password("_neliee_timing_protection_sentinel_value_")
 # Parámetros de rate limiting (ajusta según tu política)
 _MAX_FAILED_ATTEMPTS = 5
 _LOCKOUT_WINDOW_MINUTES = 15
+
+
+# ---------------------------------------------------------------------------
+# Helpers de cookie
+# ---------------------------------------------------------------------------
+
+def _set_refresh_cookie(response: Response, token: str) -> None:
+    """
+    Setea el refresh token como httpOnly cookie.
+    - httponly=True  → JS no puede leerla (protección XSS)
+    - secure         → solo HTTPS en producción
+    - samesite="lax" → protege contra CSRF en la mayoría de flujos
+    - path           → scope mínimo: solo endpoints de auth
+    """
+    response.set_cookie(
+        key="refresh_token",
+        value=token,
+        httponly=True,
+        secure=not settings.DEBUG,          # True en prod, False en dev
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86_400,
+        path="/api/v1/auth",               # La cookie solo se envía a /api/v1/auth/*
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    """
+    Limpia la cookie del refresh token.
+    Debe usar exactamente los mismos path/secure/samesite que al crearla,
+    de lo contrario el browser no la elimina.
+    """
+    response.delete_cookie(
+        key="refresh_token",
+        path="/api/v1/auth",
+        secure=not settings.DEBUG,
+        samesite="lax",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -74,23 +112,25 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Autentica al usuario y devuelve Access + Refresh Token.
+    Autentica al usuario.
+    - Devuelve el access token en el body (lo lee JS para adjuntarlo a las requests).
+    - El refresh token se setea como httpOnly cookie (JS nunca lo ve).
 
     Fix 1 — Rate limiting:
         Antes de intentar la autenticación, contamos los intentos fallidos
         recientes para ese email. Si superan el umbral, devolvemos 429.
-        Usamos la tabla LoginAttempt que ya existía en el modelo pero no se usaba.
     """
     # ── 1. Rate limiting ────────────────────────────────────────────────────
     window_start = datetime.now(timezone.utc) - timedelta(minutes=_LOCKOUT_WINDOW_MINUTES)
     failed_count_result = await db.execute(
         select(func.count(LoginAttempt.id)).where(
             LoginAttempt.email == form_data.username,
-            LoginAttempt.successful == False,  # noqa: E712 (SQLAlchemy necesita ==)
+            LoginAttempt.successful == False,  # noqa: E712
             LoginAttempt.timestamp >= window_start,
         )
     )
@@ -112,7 +152,6 @@ async def login(
     authenticated = user is not None and password_ok
 
     # ── 3. Registrar intento (éxito o fallo) ────────────────────────────────
-    #    Hacemos esto ANTES de lanzar la excepción para que quede guardado.
     login_attempt = LoginAttempt(
         user_id=user.id if user else None,
         email=form_data.username,
@@ -128,6 +167,7 @@ async def login(
             detail="Email o contraseña incorrectos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    assert user is not None
 
     if not user.is_active:
         raise HTTPException(
@@ -150,9 +190,12 @@ async def login(
     db.add(db_refresh_token)
     await db.commit()
 
+    # ── 6. Setear httpOnly cookie con el refresh token ──────────────────────
+    _set_refresh_cookie(response, raw_refresh_token)
+
+    # El body solo incluye el access token y el rol (nunca el refresh token)
     return Token(
         access_token=access_token,
-        refresh_token=raw_refresh_token,
         token_type="bearer",
         role=user.role,
     )
@@ -164,29 +207,36 @@ async def login(
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
-    token_data: TokenRefresh,
+    request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Genera un nuevo par de tokens usando un refresh token válido.
+    Genera un nuevo par de tokens usando el refresh token de la httpOnly cookie.
+    El frontend no envía nada en el body — el browser adjunta la cookie automáticamente
+    gracias a withCredentials: true en axiosClient.
 
     Fix 2 — SELECT FOR UPDATE:
-        Serializa el acceso a la fila del token. Si dos requests llegan
-        simultáneamente con el mismo token, el segundo esperará a que el
-        primero confirme la transacción. Cuando lea la fila, ya estará
-        marcada como is_used=True y activará la detección de reuso.
+        Serializa el acceso a la fila del token para eliminar race conditions.
 
     Fix 3 — Transacción única:
-        is_used=True y el nuevo RefreshToken se persisten en un único commit,
-        eliminando la ventana de fallo entre los dos commits originales.
+        is_used=True y el nuevo RefreshToken se persisten en un único commit.
     """
-    hashed_rt = hash_refresh_token(token_data.refresh_token)
+    # ── Leer refresh token de la cookie (no del body) ────────────────────────
+    raw_token = request.cookies.get("refresh_token")
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No hay sesión activa.",
+        )
+
+    hashed_rt = hash_refresh_token(raw_token)
 
     # ── Bloqueo de fila para eliminar race condition ─────────────────────────
     result = await db.execute(
         select(RefreshToken)
         .where(RefreshToken.token_hash == hashed_rt)
-        .with_for_update()  # ← serializa acceso concurrente a esta fila
+        .with_for_update()
     )
     db_token = result.scalar_one_or_none()
 
@@ -197,12 +247,14 @@ async def refresh_token(
         )
 
     if db_token.expires_at < datetime.now(timezone.utc):
+        _clear_refresh_cookie(response)  # limpiar cookie expirada
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expirado.",
         )
 
     if db_token.is_revoked:
+        _clear_refresh_cookie(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token revocado.",
@@ -216,6 +268,7 @@ async def refresh_token(
             .values(is_revoked=True)
         )
         await db.commit()
+        _clear_refresh_cookie(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=(
@@ -229,13 +282,14 @@ async def refresh_token(
     user = user_result.scalar_one_or_none()
 
     if not user or not user.is_active:
+        _clear_refresh_cookie(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no válido.",
         )
 
     # ── Rotar tokens en una sola transacción ────────────────────────────────
-    db_token.is_used = True  # marcar viejo como consumido
+    db_token.is_used = True
 
     new_access_token = create_access_token(
         subject=user.id,
@@ -249,11 +303,13 @@ async def refresh_token(
         user_id=user.id,
     )
     db.add(new_db_token)
-    await db.commit()  # ← único commit: atómico
+    await db.commit()  # único commit: atómico
+
+    # ── Rotar la cookie con el nuevo refresh token ───────────────────────────
+    _set_refresh_cookie(response, new_raw_refresh_token)
 
     return Token(
         access_token=new_access_token,
-        refresh_token=new_raw_refresh_token,
         token_type="bearer",
         role=user.role,
     )
@@ -265,30 +321,39 @@ async def refresh_token(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
-    token_data: TokenRefresh,
+    request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Revoca el refresh token y toda su familia.
+    Revoca el refresh token y toda su familia, luego limpia la cookie.
 
     Fix 4 — Revocación de familia completa:
-        El código original solo revocaba el token presentado. Si un atacante
-        ya había rotado el token antes del logout, el nuevo token quedaba activo.
-        Ahora revocamos todos los tokens de la misma familia_id.
-    """
-    hashed_rt = hash_refresh_token(token_data.refresh_token)
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == hashed_rt)
-    )
-    db_token = result.scalar_one_or_none()
+        Revocamos todos los tokens de la misma family_id para invalidar
+        cualquier sesión paralela o token robado ya rotado.
 
-    if db_token:
-        await db.execute(
-            update(RefreshToken)
-            .where(RefreshToken.family_id == db_token.family_id)
-            .values(is_revoked=True)
+    El frontend no envía body — el browser adjunta la cookie automáticamente.
+    La cookie se limpia siempre, aunque el token no exista en BD.
+    """
+    raw_token = request.cookies.get("refresh_token")
+
+    if raw_token:
+        hashed_rt = hash_refresh_token(raw_token)
+        result = await db.execute(
+            select(RefreshToken).where(RefreshToken.token_hash == hashed_rt)
         )
-        await db.commit()
+        db_token = result.scalar_one_or_none()
+
+        if db_token:
+            await db.execute(
+                update(RefreshToken)
+                .where(RefreshToken.family_id == db_token.family_id)
+                .values(is_revoked=True)
+            )
+            await db.commit()
+
+    # Limpiar la cookie siempre, independientemente de si el token existía
+    _clear_refresh_cookie(response)
 
     return None
 

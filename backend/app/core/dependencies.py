@@ -1,24 +1,25 @@
-#get_db, get_current_user, require_admin, etc... dependencias para las rutas y servicios de la aplicacion
 # app/core/dependencies.py
-
-#Dependencias reutilizables de FastAPI:
- # - get_db         → sesión async de BD
-  #- get_current_user  → usuario autenticado por JWT
-  #- require_admin  → guard de rol admin
-
+"""
+Dependencias reutilizables de FastAPI:
+ - get_db            → sesión async de BD
+ - get_current_user  → usuario autenticado por JWT
+ - require_admin     → guard de rol admin
+"""
 
 import uuid
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError
+from jwt import InvalidTokenError  # PyJWT — consistente con security.py
+                                   # FIX: era "from jose import JWTError" pero security.py
+                                   # usa PyJWT, que lanza InvalidTokenError, no JWTError.
+                                   # Capturar JWTError de jose nunca interceptaba nada.
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from .security import decode_token
 from ..db.database import get_db
-from ..models.models import Enrollment, User
+from ..models.models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -38,13 +39,14 @@ async def get_current_user(
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-        
-        user_uuid=uuid.UUID(user_id)
-    except (JWTError, ValueError):
+
+        user_uuid = uuid.UUID(user_id)
+    except (InvalidTokenError, ValueError):
+        # InvalidTokenError cubre ExpiredSignatureError, DecodeError, etc. (PyJWT)
+        # ValueError cubre UUID malformado
         raise credentials_exception
 
     result = await db.execute(select(User).where(User.id == user_uuid))
-                              
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active:
