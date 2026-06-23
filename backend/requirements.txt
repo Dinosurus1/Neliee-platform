@@ -1,3 +1,24 @@
+# requirements.txt
+#
+# CAMBIOS vs versión anterior:
+#
+#  ELIMINADAS (dependencias de python-jose — todas inseguras o innecesarias):
+#    - python-jose==3.3.0   → CVE-2024-33664, sin mantenimiento activo
+#    - ecdsa==0.19.2        → operaciones no son constant-time (timing attacks)
+#    - rsa==4.9.1           → transitiva de python-jose
+#    - pyasn1==0.6.3        → transitiva de python-jose/rsa
+#    - six==1.17.0          → compat Python 2/3, transitiva de ecdsa
+#
+#  AÑADIDA:
+#    - PyJWT>=2.8.0         → reemplazo mantenido y seguro de python-jose
+#
+#  NOTA sobre passlib==1.7.4:
+#    El proyecto está archivado en GitHub (sin mantenimiento desde 2020).
+#    Por ahora no hay CVEs activos y el backend bcrypt que usa sí está mantenido.
+#    Migración recomendada a mediano plazo: reemplazar CryptContext por
+#    bcrypt directamente o usar argon2-cffi (Argon2 es más fuerte que bcrypt).
+#    Mientras tanto, passlib permanece en esta lista pero debe monitorearse.
+
 aiosmtplib==2.0.2
 annotated-types==0.7.0
 anyio==4.13.0
@@ -9,7 +30,6 @@ cffi==2.0.0
 click==8.3.3
 cryptography==47.0.0
 dnspython==2.8.0
-ecdsa==0.19.2
 email-validator==2.3.0
 fastapi==0.115.5
 fastapi-mail==1.4.1
@@ -22,18 +42,15 @@ idna==3.13
 Jinja2==3.1.6
 MarkupSafe==3.0.3
 passlib==1.7.4
-pyasn1==0.6.3
 pycparser==3.0
 pydantic==2.13.4
 pydantic-settings==2.6.1
 pydantic_core==2.46.4
 python-dotenv==1.0.1
-python-jose==3.3.0
+PyJWT>=2.8.0
 python-multipart==0.0.17
 PyYAML==6.0.3
 regex==2026.5.9
-rsa==4.9.1
-six==1.17.0
 SQLAlchemy==2.0.36
 starlette==0.41.3
 typing-inspection==0.4.2
@@ -42,3 +59,4 @@ uvicorn==0.32.1
 uvloop==0.22.1
 watchfiles==1.1.1
 websockets==16.0
+alembic==1.18.4

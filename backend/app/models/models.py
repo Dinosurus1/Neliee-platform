@@ -10,13 +10,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone, timedelta
 
-from typing import List
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, func, Integer
+from typing import List, Optional
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, func, Integer, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db.database import Base
-
+from ..core.config import settings
 
 
 # Helpers
@@ -197,7 +197,15 @@ class RefreshToken(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    token: Mapped[str] = mapped_column(String(512), unique=True, index=True, nullable=False)
+    family_id: Mapped [uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=False,
+        index=True,
+    )
+    token_hash: Mapped[str] = mapped_column(String(512), 
+        unique=True, 
+        index=True, 
+        nullable=False)
     
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
@@ -205,7 +213,7 @@ class RefreshToken(Base):
     
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), 
-        default=lambda: datetime.now(timezone.utc) + timedelta(days=30), 
+        default=lambda: datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS), 
         nullable=False
     )
     is_revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -216,3 +224,90 @@ class RefreshToken(Base):
     def __repr__(self) -> str:
         return f"<RefreshToken id={self.id} user_id={self.user_id} revoked={self.is_revoked}>"
         
+        
+class Invitation(Base):
+    """
+    Token de invitación enviado por un admin para que una empleada active su cuenta.
+    El token crudo viaja en el correo; aquí guardamos solo su hash SHA-256.
+    """
+    __tablename__ = "invitations"
+ 
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+ 
+    # Email al que se envió la invitación
+    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+ 
+    # SHA-256 del token crudo (64 hex chars)
+    token_hash: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True
+    )
+ 
+    # Admin que envió la invitación (SET NULL si el admin se elimina)
+    invited_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+ 
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+ 
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+ 
+    # Relación de lectura (sin back_populates — solo la necesitamos en una dirección)
+    invited_by_user: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys=[invited_by]
+    )
+ 
+    def __repr__(self) -> str:
+        return f"<Invitation email={self.email} used={self.is_used}>"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# INSTRUCCIONES: pegar al final de app/models/models.py
+# También añadir Index al import de sqlalchemy si no está:
+#   from sqlalchemy import ..., Index
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class VideoView(Base):
+    """
+    Registra cada vez que una empleada carga el video embed de un curso.
+    Permite al admin ver quién vio qué, cuántas veces y cuándo.
+    Se crea una fila por cada carga del iframe (no por cada segundo de reproducción).
+    """
+    __tablename__ = "video_views"
+    __table_args__ = (
+        # Índice compuesto para las queries más frecuentes del admin:
+        # "todos los viewers de un curso" y "todo lo que vio una usuaria"
+        Index("ix_video_view_course_user", "course_id", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    viewed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    user: Mapped["User"] = relationship("User")
+    course: Mapped["Course"] = relationship("Course")
+
+    def __repr__(self) -> str:
+        return f"<VideoView user={self.user_id} course={self.course_id}>"
