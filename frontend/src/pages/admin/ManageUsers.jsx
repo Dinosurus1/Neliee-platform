@@ -5,262 +5,178 @@ import { useApi } from "../../hooks/useApi";
 
 import {
   getUsers,
-  createUser,
   updateUser,
   deleteUser,
   enrollUser,
-  removeEnrollment
+  removeEnrollment,
 } from "../../api/userService";
+
+// ← createUser eliminado: el flujo ahora es siempre por invitación
+import {
+  sendInvitation,
+  getPendingInvitations,
+  cancelInvitation,
+} from "../../api/invitationService";
 
 import { getAllCourses } from "../../api/courseService";
 
-import Modal from "../../components/ui/Modal";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
-import Badge from "../../components/ui/Badge";
+import Modal   from "../../components/ui/Modal";
+import Button  from "../../components/ui/Button";
+import Input   from "../../components/ui/Input";
+import Badge   from "../../components/ui/Badge";
 import Spinner from "../../components/ui/Spinner";
 
-const emptyForm = {
-  full_name: "",
-  email: "",
-  password: "",
-  is_active: true,
-};
+// ─── Helper: normaliza errores de FastAPI ──────────────────────────────────────
+
+function parseApiError(err, fallback = "Error inesperado.") {
+  const detail = err?.response?.data?.detail;
+  if (Array.isArray(detail)) return detail.map((e) => e.msg).join(" • ");
+  if (typeof detail === "string") return detail;
+  return fallback;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ManageUsers() {
-  const {
-    data: users,
-    isLoading,
-    refetch,
-  } = useApi(getUsers);
-
-  // Cursos disponibles
+  // Carga usuarios activos/inactivos e invitaciones pendientes en paralelo
+  const { data: users,              isLoading: loadingUsers,   refetch: refetchUsers   } = useApi(getUsers);
+  const { data: pendingInvitations, isLoading: loadingPending, refetch: refetchPending } = useApi(getPendingInvitations);
   const { data: courses } = useApi(getAllCourses);
 
-  const [modal, setModal] = useState({
-    open: false,
-    mode: "create",
-    user: null,
-  });
-
-  // Modal de inscripción
-  const [enrollModal, setEnrollModal] = useState({
-    open: false,
-    user: null,
-  });
-
+  // mode: "invite" | "edit" | "enroll" | null
+  const [activeModal, setActiveModal] = useState({ mode: null, user: null });
   const [selectedCourses, setSelectedCourses] = useState([]);
-
-  const [form, setForm] = useState(emptyForm);
-
-  const [saving, setSaving] = useState(false);
-
+  const [form,      setForm]      = useState({ email: "", full_name: "", password: "", is_active: true });
+  const [saving,    setSaving]    = useState(false);
   const [formError, setFormError] = useState(null);
 
-  function openCreate() {
-    setForm(emptyForm);
-    setFormError(null);
+  // ── Abrir modales ───────────────────────────────────────────────────────────
 
-    setModal({
-      open: true,
-      mode: "create",
-      user: null,
-    });
+  function openInvite() {
+    setForm({ email: "" });
+    setFormError(null);
+    setActiveModal({ mode: "invite", user: null });
   }
 
   function openEdit(user) {
-    setForm({
-      full_name: user.full_name,
-      email: user.email,
-      password: "",
-      is_active: user.is_active,
-    });
-
+    setForm({ full_name: user.full_name, email: user.email, password: "", is_active: user.is_active });
     setFormError(null);
-
-    setModal({
-      open: true,
-      mode: "edit",
-      user,
-    });
+    setActiveModal({ mode: "edit", user });
   }
 
-  // Abrir modal de inscripción
   function openEnroll(user) {
-  setFormError(null);
+    setSelectedCourses(user.enrollments?.map((e) => e.course_id) ?? []);
+    setFormError(null);
+    setActiveModal({ mode: "enroll", user });
+  }
 
-  // Cursos ya asignados
-  const currentCourses =
-    user.enrollments?.map(
-      (enrollment) =>
-        enrollment.course_id
-    ) || [];
+  function closeModal() {
+    setActiveModal({ mode: null, user: null });
+    setFormError(null);
+  }
 
-  setSelectedCourses(currentCourses);
-
-  setEnrollModal({
-    open: true,
-    user,
-  });
-}
+  // ── Handlers de formulario ──────────────────────────────────────────────────
 
   function handleChange(e) {
-    const { name, value, type, checked } =
-      e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : value,
-    }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   }
 
-  // Seleccionar múltiples cursos
   function handleCourseToggle(courseId) {
-    setSelectedCourses((prev) => {
-      if (prev.includes(courseId)) {
-        return prev.filter(
-          (id) => id !== courseId
-        );
-      }
-
-      return [...prev, courseId];
-    });
+    setSelectedCourses((prev) =>
+      prev.includes(courseId) ? prev.filter((id) => id !== courseId) : [...prev, courseId]
+    );
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  // ── Enviar invitación (reemplaza crear directamente) ────────────────────────
 
+  async function handleInviteSubmit(e) {
+    e.preventDefault();
     setSaving(true);
     setFormError(null);
-
     try {
-      if (modal.mode === "create") {
-        await createUser({
-          ...form,
-          role: "employee",
-        });
-      } else {
-        const payload = {
-          full_name: form.full_name,
-          email: form.email,
-          is_active: form.is_active,
-        };
-
-        if (form.password) {
-          payload.password =
-            form.password;
-        }
-
-        await updateUser(
-          modal.user.id,
-          payload
-        );
-      }
-
-      setModal({
-        open: false,
-      });
-
-      refetch();
+      await sendInvitation(form.email);
+      closeModal();
+      refetchPending(); // la fila "Pendiente" aparece de inmediato en la tabla
     } catch (err) {
-      setFormError(
-        err.response?.data?.detail ??
-          "Error al guardar."
-      );
+      setFormError(parseApiError(err, "Error al enviar la invitación."));
     } finally {
       setSaving(false);
     }
   }
 
-  // Inscribir en múltiples cursos
-  async function handleEnrollSubmit(e) {
-  e.preventDefault();
+  // ── Editar usuario existente ────────────────────────────────────────────────
 
-  setSaving(true);
-  setFormError(null);
-
-  try {
-    // Cursos actuales
-    const currentEnrollments =
-      enrollModal.user?.enrollments || [];
-
-    const currentCourseIds =
-      currentEnrollments.map(
-        (e) => e.course_id
-      );
-
-    // Nuevos cursos para agregar
-    const coursesToAdd =
-      selectedCourses.filter(
-        (courseId) =>
-          !currentCourseIds.includes(
-            courseId
-          )
-      );
-
-    // Cursos desmarcados para eliminar
-    const enrollmentsToRemove =
-      currentEnrollments.filter(
-        (enrollment) =>
-          !selectedCourses.includes(
-            enrollment.course_id
-          )
-      );
-
-    // Agregar nuevos
-    for (const courseId of coursesToAdd) {
-      await enrollUser(
-        enrollModal.user.id,
-        courseId
-      );
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setFormError(null);
+    try {
+      const payload = { full_name: form.full_name, email: form.email, is_active: form.is_active };
+      if (form.password) payload.password = form.password;
+      await updateUser(activeModal.user.id, payload);
+      closeModal();
+      refetchUsers();
+    } catch (err) {
+      setFormError(parseApiError(err, "Error al guardar."));
+    } finally {
+      setSaving(false);
     }
-
-    // Eliminar removidos
-    for (const enrollment of enrollmentsToRemove) {
-      await removeEnrollment(
-        enrollment.id
-      );
-    }
-
-    alert(
-      "Capacitaciones actualizadas correctamente."
-    );
-
-    setEnrollModal({
-      open: false,
-      user: null,
-    });
-
-    setSelectedCourses([]);
-
-    refetch();
-  } catch (err) {
-    setFormError(
-      err.response?.data?.detail ??
-        "Error actualizando capacitaciones."
-    );
-  } finally {
-    setSaving(false);
   }
-}
+
+  // ── Inscripciones ───────────────────────────────────────────────────────────
+
+  async function handleEnrollSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setFormError(null);
+    try {
+      const currentEnrollments = activeModal.user?.enrollments ?? [];
+      const currentCourseIds   = currentEnrollments.map((e) => e.course_id);
+      const coursesToAdd        = selectedCourses.filter((id) => !currentCourseIds.includes(id));
+      const enrollmentsToRemove = currentEnrollments.filter(
+        (enrollment) => !selectedCourses.includes(enrollment.course_id)
+      );
+      await Promise.all([
+        ...coursesToAdd.map((courseId) => enrollUser(activeModal.user.id, courseId)),
+        ...enrollmentsToRemove.map((enrollment) => removeEnrollment(enrollment.id)),
+      ]);
+      closeModal();
+      refetchUsers();
+    } catch (err) {
+      setFormError(parseApiError(err, "Error actualizando capacitaciones."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Eliminar usuario ────────────────────────────────────────────────────────
 
   async function handleDelete(userId) {
-    if (
-      !confirm(
-        "¿Eliminar esta empleada? Esta acción no se puede deshacer."
-      )
-    )
-      return;
-
-    await deleteUser(userId);
-
-    refetch();
+    if (!confirm("¿Eliminar esta empleada? Esta acción no se puede deshacer.")) return;
+    try {
+      await deleteUser(userId);
+      refetchUsers();
+    } catch (err) {
+      alert(parseApiError(err, "Error al eliminar."));
+    }
   }
 
-  if (isLoading) {
+  // ── Cancelar invitación pendiente ───────────────────────────────────────────
+
+  async function handleCancelInvitation(invitationId) {
+    if (!confirm("¿Cancelar esta invitación? El enlace del correo dejará de funcionar.")) return;
+    try {
+      await cancelInvitation(invitationId);
+      refetchPending();
+    } catch (err) {
+      alert(parseApiError(err, "Error al cancelar la invitación."));
+    }
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  if (loadingUsers || loadingPending) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Spinner size="lg" />
@@ -268,172 +184,115 @@ export default function ManageUsers() {
     );
   }
 
+  const totalCount = (users?.length ?? 0) + (pendingInvitations?.length ?? 0);
+
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)]">
+
+      {/* Header */}
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold text-gray-100">
-              Empleadas
-            </h1>
-
-            <p className="mt-1 text-sm text-gray-500">
-              {users?.length ?? 0} registradas
-            </p>
+            <h1 className="font-display text-2xl font-bold text-gray-100">Empleadas</h1>
+            <p className="mt-1 text-sm text-gray-500">{totalCount} registradas</p>
           </div>
-
-          <Button onClick={openCreate}>
-            + Nueva empleada
-          </Button>
+          <Button onClick={openInvite}>+ Nueva empleada</Button>
         </div>
       </header>
 
+      {/* Tabla */}
       <main className="px-8 py-8">
-        {!users?.length ? (
+        {totalCount === 0 ? (
           <div className="card flex flex-col items-center py-16 text-center">
-            <span className="text-4xl">
-              👥
-            </span>
-
-            <p className="mt-4 text-gray-400">
-              Aún no hay empleadas
-              registradas.
-            </p>
-
-            <Button
-              onClick={openCreate}
-              className="mt-4"
-            >
-              Crear primera empleada
-            </Button>
+            <span className="text-4xl">👥</span>
+            <p className="mt-4 text-gray-400">Aún no hay empleadas registradas.</p>
+            <Button onClick={openInvite} className="mt-4">Invitar primera empleada</Button>
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-[var(--color-border)]">
             <table className="w-full text-sm">
               <thead className="bg-[var(--color-bg-secondary)] text-left text-xs text-gray-500">
                 <tr>
-                  <th className="px-4 py-3 font-medium">
-                    Nombre
-                  </th>
-
-                  <th className="px-4 py-3 font-medium">
-                    Email
-                  </th>
-
-                  <th className="px-4 py-3 font-medium">
-                    Estado
-                  </th>
-
-                  <th className="px-4 py-3 font-medium">
-                    Registrada
-                  </th>
-
-                  <th className="px-4 py-3 text-right">
-                    Acciones
-                  </th>
+                  <th className="px-4 py-3 font-medium">Nombre</th>
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Estado</th>
+                  <th className="px-4 py-3 font-medium">Registrada</th>
+                  <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-[var(--color-border)]">
-                {users.map((u) => (
+
+                {/* ── Invitaciones pendientes (arriba) ── */}
+                {(pendingInvitations ?? []).map((inv) => (
+                  <tr
+                    key={`inv-${inv.id}`}
+                    className="bg-[var(--color-bg-card)] transition-colors hover:bg-[var(--color-bg-secondary)]"
+                  >
+                    <td className="px-4 py-3 italic text-gray-500">—</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-400">{inv.email}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="amber">Pendiente</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      {new Date(inv.created_at).toLocaleDateString("es-CO")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => handleCancelInvitation(inv.id)}
+                          className="text-xs text-red-400 hover:underline"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* ── Usuarios activos / inactivos ── */}
+                {(users ?? []).map((u) => (
                   <tr
                     key={u.id}
                     className="bg-[var(--color-bg-card)] transition-colors hover:bg-[var(--color-bg-secondary)]"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-200">
-                      {u.full_name}
-                    </td>
-
-                    <td className="px-4 py-3 font-mono text-xs text-gray-400">
-                      {u.email}
-                    </td>
-
+                    <td className="px-4 py-3 font-medium text-gray-200">{u.full_name}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-400">{u.email}</td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant={
-                          u.is_active
-                            ? "green"
-                            : "gray"
-                        }
-                      >
-                        {u.is_active
-                          ? "Activa"
-                          : "Inactiva"}
+                      <Badge variant={u.is_active ? "green" : "gray"}>
+                        {u.is_active ? "Activa" : "Inactiva"}
                       </Badge>
                     </td>
-
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {new Date(
-                        u.created_at
-                      ).toLocaleDateString(
-                        "es-CO"
-                      )}
+                      {new Date(u.created_at).toLocaleDateString("es-CO")}
                     </td>
-
                     <td className="px-4 py-3">
-                      <div className="flex gap-3 justify-end">
-                        {/* NUEVO BOTÓN */}
-                        <button
-                          onClick={() =>
-                            openEnroll(u)
-                          }
-                          className="text-xs text-green-400 hover:underline"
-                        >
+                      <div className="flex justify-end gap-3">
+                        <button onClick={() => openEnroll(u)} className="text-xs text-green-400 hover:underline">
                           Inscribir
                         </button>
-
-                        <button
-                          onClick={() =>
-                            openEdit(u)
-                          }
-                          className="text-xs text-cyan-400 hover:underline"
-                        >
+                        <button onClick={() => openEdit(u)} className="text-xs text-cyan-400 hover:underline">
                           Editar
                         </button>
-
-                        <button
-                          onClick={() =>
-                            handleDelete(u.id)
-                          }
-                          className="text-xs text-red-400 hover:underline"
-                        >
+                        <button onClick={() => handleDelete(u.id)} className="text-xs text-red-400 hover:underline">
                           Eliminar
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))}
+
               </tbody>
             </table>
           </div>
         )}
       </main>
 
-      {/* Modal crear / editar */}
-      <Modal
-        isOpen={modal.open}
-        onClose={() =>
-          setModal({ open: false })
-        }
-        title={
-          modal.mode === "create"
-            ? "Nueva empleada"
-            : "Editar empleada"
-        }
-      >
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4"
-        >
-          <Input
-            label="Nombre completo"
-            name="full_name"
-            value={form.full_name}
-            onChange={handleChange}
-            placeholder="Ana García"
-            required
-          />
-
+      {/* ── Modal: invitar empleada ── */}
+      <Modal isOpen={activeModal.mode === "invite"} onClose={closeModal} title="Invitar empleada">
+        <form onSubmit={handleInviteSubmit} className="flex flex-col gap-4">
+          <p className="text-sm text-gray-400">
+            Se enviará un correo con un enlace para que la empleada cree su contraseña y active su cuenta.
+          </p>
           <Input
             label="Correo electrónico"
             type="email"
@@ -443,152 +302,105 @@ export default function ManageUsers() {
             placeholder="ana@empresa.com"
             required
           />
+          {formError && (
+            <p className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-400">{formError}</p>
+          )}
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={closeModal} className="btn-outline px-4 py-2 text-xs">
+              Cancelar
+            </button>
+            <Button type="submit" isLoading={saving}>Enviar invitación</Button>
+          </div>
+        </form>
+      </Modal>
 
+      {/* ── Modal: editar empleada ── */}
+      <Modal isOpen={activeModal.mode === "edit"} onClose={closeModal} title="Editar empleada">
+        <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
           <Input
-            label={
-              modal.mode === "edit"
-                ? "Nueva contraseña (dejar vacío para no cambiar)"
-                : "Contraseña"
-            }
+            label="Nombre completo"
+            name="full_name"
+            value={form.full_name}
+            onChange={handleChange}
+            placeholder="Ana García"
+            required
+          />
+          <Input
+            label="Correo electrónico"
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="ana@empresa.com"
+            required
+          />
+          <Input
+            label="Nueva contraseña (dejar vacío para no cambiar)"
             type="password"
             name="password"
             value={form.password}
             onChange={handleChange}
-            placeholder="Mínimo 8 caracteres"
-            required={
-              modal.mode === "create"
-            }
+            placeholder="Mín. 8 caracteres"
           />
-
-          {modal.mode === "edit" && (
-            <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={form.is_active}
-                onChange={handleChange}
-                className="rounded"
-              />
-
-              Cuenta activa
-            </label>
-          )}
-
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-400">
+            <input
+              type="checkbox"
+              name="is_active"
+              checked={form.is_active}
+              onChange={handleChange}
+              className="rounded"
+            />
+            Cuenta activa
+          </label>
           {formError && (
-            <p className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-400">
-              {formError}
-            </p>
+            <p className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-400">{formError}</p>
           )}
-
-          <div className="flex gap-3 justify-end pt-2">
-            <button
-              type="button"
-              onClick={() =>
-                setModal({
-                  open: false,
-                })
-              }
-              className="btn-outline py-2 px-4 text-xs"
-            >
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={closeModal} className="btn-outline px-4 py-2 text-xs">
               Cancelar
             </button>
-
-            <Button
-              type="submit"
-              isLoading={saving}
-            >
-              {modal.mode === "create"
-                ? "Crear"
-                : "Guardar"}
-            </Button>
+            <Button type="submit" isLoading={saving}>Guardar</Button>
           </div>
         </form>
       </Modal>
 
-      {/* MODAL INSCRIPCIONES */}
+      {/* ── Modal: inscripciones ── */}
       <Modal
-        isOpen={enrollModal.open}
-        onClose={() =>
-          setEnrollModal({
-            open: false,
-            user: null,
-          })
-        }
-        title={`Asignar capacitaciones a ${
-          enrollModal.user?.full_name ||
-          ""
-        }`}
+        isOpen={activeModal.mode === "enroll"}
+        onClose={closeModal}
+        title={`Asignar capacitaciones a ${activeModal.user?.full_name ?? ""}`}
       >
-        <form
-          onSubmit={
-            handleEnrollSubmit
-          }
-          className="flex flex-col gap-4"
-        >
+        <form onSubmit={handleEnrollSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-3">
-            <label className="text-sm text-gray-300">
-              Selecciona una o más
-              capacitaciones
-            </label>
-
+            <label className="text-sm text-gray-300">Selecciona una o más capacitaciones</label>
             {courses
-              ?.filter(
-                (course) =>
-                  course.is_published
-              )
+              ?.filter((course) => course.is_published)
               .map((course) => (
                 <label
                   key={course.id}
-                  className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] p-3 cursor-pointer hover:bg-[var(--color-bg-secondary)]"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--color-border)] p-3 hover:bg-[var(--color-bg-secondary)]"
                 >
                   <input
                     type="checkbox"
-                    checked={selectedCourses.includes(
-                      course.id
-                    )}
-                    onChange={() =>
-                      handleCourseToggle(
-                        course.id
-                      )
-                    }
+                    checked={selectedCourses.includes(course.id)}
+                    onChange={() => handleCourseToggle(course.id)}
                   />
-
-                  <span className="text-sm text-gray-200">
-                    {course.title}
-                  </span>
+                  <span className="text-sm text-gray-200">{course.title}</span>
                 </label>
               ))}
           </div>
-
           {formError && (
-            <p className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-400">
-              {formError}
-            </p>
+            <p className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-400">{formError}</p>
           )}
-
           <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() =>
-                setEnrollModal({
-                  open: false,
-                  user: null,
-                })
-              }
-              className="btn-outline py-2 px-4 text-xs"
-            >
+            <button type="button" onClick={closeModal} className="btn-outline px-4 py-2 text-xs">
               Cancelar
             </button>
-
-            <Button
-              type="submit"
-              isLoading={saving}
-            >
-              Asignar capacitaciones
-            </Button>
+            <Button type="submit" isLoading={saving}>Asignar capacitaciones</Button>
           </div>
         </form>
       </Modal>
+
     </div>
   );
 }

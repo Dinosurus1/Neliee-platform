@@ -40,5 +40,6 @@ class InvitationOut(BaseModel):
     id: uuid.UUID
     email: str
     expires_at: datetime
+    created_at: datetime  # necesario para columna "Registrada" en la tabla de pendientes
 
     model_config = ConfigDict(from_attributes=True)

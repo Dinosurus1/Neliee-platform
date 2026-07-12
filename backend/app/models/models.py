@@ -5,12 +5,12 @@ Modelos ORM con SQLAlchemy 2.x (sintaxis Mapped / mapped_column).
 Tablas: users, courses, enrollments
 """
 
-from __future__ import annotations
+
 
 import uuid
 from datetime import datetime, timezone, timedelta
 
-from typing import List, Optional
+from typing import List
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, func, Integer, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -76,7 +76,7 @@ class Course(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=True)
+    description: Mapped[str|None]  = mapped_column(Text, nullable=True)
 
     # ID del video en Google Drive (el frontend arma el iframe con este dato)
     # Formato iframe: https://drive.google.com/file/d/{gdrive_video_id}/preview
@@ -132,7 +132,7 @@ class Enrollment(Base):
 
     # Progreso simple: False = no completado, True = completado
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    completed_at: Mapped[datetime] = mapped_column(
+    completed_at: Mapped[datetime| None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -154,11 +154,11 @@ class LoginAttempt(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
 
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    user_id: Mapped[uuid.UUID| None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    tfa_code: Mapped[str] = mapped_column(String(6), nullable=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    tfa_code: Mapped[str|None] = mapped_column(String(6), nullable=True)
+    expires_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
     email: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -245,7 +245,7 @@ class Invitation(Base):
     )
  
     # Admin que envió la invitación (SET NULL si el admin se elimina)
-    invited_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+    invited_by: Mapped[uuid.UUID| None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
@@ -261,7 +261,7 @@ class Invitation(Base):
     )
  
     # Relación de lectura (sin back_populates — solo la necesitamos en una dirección)
-    invited_by_user: Mapped[Optional["User"]] = relationship(
+    invited_by_user: Mapped["User|None"] = relationship(
         "User", foreign_keys=[invited_by]
     )
  

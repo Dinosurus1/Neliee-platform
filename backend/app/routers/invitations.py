@@ -3,11 +3,13 @@
 Flujo de invitación por correo.
 Prefix: /api/v1/invitations
 
+GET  /pending   → admin lista invitaciones pendientes (no usadas, no expiradas)
 POST /send      → admin envía invitación a un email
 POST /activate  → empleada activa su cuenta con el token del correo
 """
 import hashlib
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -34,6 +36,30 @@ def _generate_token() -> str:
 def _hash_token(token: str) -> str:
     """SHA-256 del token. Es lo que guardamos en la DB."""
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /pending — solo admins
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/pending", response_model=list[InvitationOut])
+async def list_pending_invitations(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """
+    Lista las invitaciones que aún no se han usado y no han expirado.
+    El frontend las combina con la lista de usuarios para mostrar el estado 'Pendiente'.
+    """
+    result = await db.execute(
+        select(Invitation)
+        .where(
+            Invitation.is_used == False,  # noqa: E712
+            Invitation.expires_at > datetime.now(timezone.utc),
+        )
+        .order_by(Invitation.created_at.desc())
+    )
+    return result.scalars().all()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -152,3 +178,36 @@ async def activate_account(
     await db.commit()
 
     return {"detail": "Cuenta activada correctamente. Ya puedes iniciar sesión."}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DELETE /{invitation_id} — solo admins
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.delete("/{invitation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_invitation(
+    invitation_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """
+    Cancela una invitación pendiente marcándola como usada.
+    Se guarda el registro en DB (no se elimina) para auditoría.
+    Devuelve 404 si no existe o ya fue aceptada/cancelada.
+    """
+    result = await db.execute(
+        select(Invitation).where(
+            Invitation.id == invitation_id,
+            Invitation.is_used == False,  # noqa: E712
+        )
+    )
+    invitation = result.scalar_one_or_none()
+
+    if not invitation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitación no encontrada o ya fue procesada.",
+        )
+
+    invitation.is_used = True
+    await db.commit()

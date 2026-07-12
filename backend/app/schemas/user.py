@@ -47,10 +47,11 @@ class UserOut(BaseModel):
     is_active: bool
     created_at: datetime
 
-    # NUEVO
-    enrollments: list[EnrollmentOut] = []
-
     model_config = {"from_attributes": True}
+
+
+class UserOutWithEnrollments(UserOut):
+    enrollments: list[EnrollmentOut] = []
 
 
 
