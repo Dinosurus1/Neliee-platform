@@ -19,3 +19,4 @@ env/
 # SISTEMA Y EDITORES 
 .DS_Store
 .vscode/
+backend/.env
