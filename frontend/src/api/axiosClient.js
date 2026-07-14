@@ -61,7 +61,8 @@ axiosClient.interceptors.response.use(
      */
     const isAuthEndpoint =
       originalRequest.url?.includes("/auth/refresh") ||
-      originalRequest.url?.includes("/auth/login");
+      originalRequest.url?.includes("/auth/login"); 
+      originalRequest.url?.includes("/auth/verify-2fa");
     if (isAuthEndpoint) {
       return Promise.reject(error);
     }

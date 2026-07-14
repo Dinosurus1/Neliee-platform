@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
-
+from ..core.password_policy import validate_password_strength
 
 class InvitationCreate(BaseModel):
     """Payload que envía el admin para invitar a una empleada."""
@@ -30,9 +30,7 @@ class ActivateAccount(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("La contraseña debe tener al menos 8 caracteres.")
-        return v
+        return validate_password_strength(v)
 
 
 class InvitationOut(BaseModel):

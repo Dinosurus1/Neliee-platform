@@ -23,9 +23,8 @@ from ..schemas.video import VideoAccessOut, ViewerOut
 router = APIRouter()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # GET /courses/{course_id}/watch — empleada autenticada
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/courses/{course_id}/watch", response_model=VideoAccessOut)
 async def get_video_access(

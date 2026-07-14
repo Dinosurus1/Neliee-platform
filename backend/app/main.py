@@ -4,6 +4,10 @@ Punto de entrada de la aplicación FastAPI.
 """
 from contextlib import asynccontextmanager
 
+from .core.limiter import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -16,9 +20,10 @@ from .db.init_db import init_db
 from .routers import auth, courses, enrollments, users, invitations
 
 
-# ---------------------------------------------------------------------------
+
+
 # Lifespan
-# ---------------------------------------------------------------------------
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,9 +33,9 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-# ---------------------------------------------------------------------------
+
 # Instancia principal
-# ---------------------------------------------------------------------------
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -43,10 +48,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) #type: ignore [arg-type]
 
-# ---------------------------------------------------------------------------
 # Middlewares  (se aplican en orden inverso: el último añadido es el más externo)
-# ---------------------------------------------------------------------------
 
 # 1. CORS (más interno — después del host check y los headers de seguridad)
 app.add_middleware(

@@ -50,8 +50,8 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: List[str] = ["*"]
 
     # ── Seed de admin inicial ──────────────────────────────────────────────
-    FIRST_ADMIN_EMAIL: str = "admin@neliee.com"
-    FIRST_ADMIN_PASSWORD: str = "Cambiar en produccion"
+    FIRST_ADMIN_EMAIL: str = "daniyt1004@gmail.com"
+    FIRST_ADMIN_PASSWORD: str #obligatorio, sin default debil
 
     # ── Correo ─────────────────────────────────────────────────────────────
     MAIL_USERNAME: str = ""

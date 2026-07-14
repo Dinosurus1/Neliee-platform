@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 from typing import List
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, func, Integer, Index
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, func, Integer, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,7 +42,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="employee")
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Timestamps automáticos con el servidor
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -118,6 +118,8 @@ class Enrollment(Base):
     """
 
     __tablename__ = "enrollments"
+    __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_enrollment_user_course"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -166,21 +168,26 @@ class LoginAttempt(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     successful: Mapped[bool] = mapped_column(Boolean, nullable=False)
-
+    ip_address: Mapped[str|None] = mapped_column(String(45), nullable=True)  # IPv4 o IPv6 
+     
     def __repr__(self) -> str:
         status = "SUCCESS" if self.successful else "FAILURE"
         return f"<LoginAttempt {self.email} at {self.timestamp} - {status}>"
 
 class DeviceSession(Base):
     __tablename__ = "device_sessions"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    __table_args__ = (
+        UniqueConstraint("user_id", "device_fingerprint", name="uq_device_session_user_fingerprint"),
     )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     device_info: Mapped[str] = mapped_column(String(255), nullable=False)
+    device_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    trusted_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_active: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
@@ -188,8 +195,26 @@ class DeviceSession(Base):
     user: Mapped["User"] = relationship("User")
 
     def __repr__(self) -> str:
-        return f"<DeviceSession user_id={self.user_id} device='{self.device_info}'>"
-    
+        return f"<DeviceSession user_id={self.user_id} trusted_until={self.trusted_until}>"
+
+class TwoFactorChallenge(Base):
+    """Reto de verificación por código enviado al correo, solo cuando el dispositivo no es reconocido."""
+    __tablename__ = "two_factor_challenges"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user: Mapped["User"] = relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<TwoFactorChallenge user_id={self.user_id} used={self.is_used}>"
     
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
@@ -311,3 +336,4 @@ class VideoView(Base):
 
     def __repr__(self) -> str:
         return f"<VideoView user={self.user_id} course={self.course_id}>"
+        

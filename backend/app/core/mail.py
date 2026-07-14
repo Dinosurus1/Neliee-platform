@@ -62,3 +62,26 @@ async def send_invitation_email(
     )
 
     await _fm.send_message(message)
+
+async def send_2fa_code_email(to_email: str, code: str, device_info: str) -> None:
+    body = f"""
+    <html>
+    <body style="font-family:sans-serif;color:#333;max-width:520px;margin:auto;padding:32px 24px;">
+      <h2 style="color:#1D9E75;">Código de verificación — {settings.PROJECT_NAME}</h2>
+      <p>Detectamos un inicio de sesión desde un dispositivo nuevo:</p>
+      <p style="color:#666;font-size:13px;">{device_info}</p>
+      <p>Tu código de verificación es:</p>
+      <p style="font-size:32px;font-weight:bold;letter-spacing:4px;color:#1D9E75;margin:20px 0;">{code}</p>
+      <p style="color:#888;font-size:13px;">
+        Expira en 10 minutos. Si no fuiste tú, cambia tu contraseña de inmediato.
+      </p>
+    </body>
+    </html>
+    """
+    message = MessageSchema(
+        subject=f"Código de verificación — {settings.PROJECT_NAME}",
+        recipients=[to_email],
+        body=body,
+        subtype=MessageType.html,
+    )
+    await _fm.send_message(message)

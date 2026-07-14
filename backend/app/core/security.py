@@ -81,3 +81,34 @@ def hash_refresh_token(token: str) -> str:
     No usamos bcrypt porque el token ya tiene altísima entropía y bcrypt lo limitaría a 72 bytes.
     """
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def generate_otp_code() -> str:
+    """Código numérico de 6 dígitos para verificación por correo."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def hash_otp_code(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def generate_device_id() -> str:
+    """Token opaco para la cookie que identifica un dispositivo ya verificado."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_device_id(device_id: str) -> str:
+    return hashlib.sha256(device_id.encode("utf-8")).hexdigest()
+
+
+def create_pending_2fa_token(user_id: Any, challenge_id: Any) -> str:
+    """Token de 10 min que vincula la verificación de 2FA a un intento de login específico."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+    payload = {
+        "sub": str(user_id),
+        "cid": str(challenge_id),
+        "purpose": "2fa_pending",
+        "exp": expire,
+        "iat": datetime.now(timezone.utc),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

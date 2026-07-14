@@ -1,28 +1,32 @@
 // src/hooks/useAuth.js
 import { useState } from "react";
 import { useAuthStore } from "../store/authStore";
-import { login as loginService, getMe, logoutUser } from "../api/authService";
+import { login as loginService, verifyTwoFactor as verifyTwoFactorService, getMe, logoutUser } from "../api/authService";
 
 /**
  * Mensajes de error amigables.
- * No exponemos mensajes internos del backend (queries SQL, nombres de tablas, etc.)
+ * `context` distingue si el error viene del paso de credenciales o del
+ * paso de verificación de código, porque un 401 significa cosas distintas.
  */
-function resolveErrorMessage(err) {
+function resolveErrorMessage(err, context = "login") {
   const status = err.response?.status;
   const detail = err.response?.data?.detail;
 
-  if (status === 401) return "Correo o contraseña incorrectos.";
+  if (status === 401) {
+    return context === "2fa" ? "Código incorrecto o expirado." : "Correo o contraseña incorrectos.";
+  }
   if (status === 403) return "Tu cuenta no tiene acceso. Contacta a la administración.";
   if (status === 422) return "Verifica que los datos ingresados sean correctos.";
   if (status === 429) return "Demasiados intentos. Espera unos minutos e intenta de nuevo.";
   if (status >= 500)  return "Error del servidor. Intenta más tarde.";
 
-  // Solo mostrar el detail del backend si es un string corto y no parece interno
   if (typeof detail === "string" && detail.length < 120 && !detail.match(/SELECT|INSERT|Table|column/i)) {
     return detail;
   }
 
-  return "Error al iniciar sesión. Intenta de nuevo.";
+  return context === "2fa"
+    ? "Error al verificar el código. Intenta de nuevo."
+    : "Error al iniciar sesión. Intenta de nuevo.";
 }
 
 export function useAuth() {
@@ -30,31 +34,39 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError]         = useState(null);
 
+  /** Pasos finales compartidos: guardar access token en memoria + traer /auth/me. */
+  async function _completeLogin(tokenData) {
+    useAuthStore.getState().setAccessToken(tokenData.access_token);
+    const userData = await getMe();
+    login(tokenData.access_token, userData);
+    return userData.role;
+  }
+
   /**
-   * Maneja el flujo completo de login:
-   * 1. Obtiene el access token (y el backend setea la httpOnly cookie)
-   * 2. Guarda el access token en memoria para que axiosClient lo use
-   * 3. Llama a /auth/me para obtener los datos reales del usuario
-   * 4. Retorna el rol como fuente de verdad para la redirección
+   * Paso 1: credenciales.
+   * Retorna:
+   *   null                                        → error (ver `error`)
+   *   { requires2FA, pendingToken, message }       → dispositivo nuevo, falta código
+   *   { role }                                     → sesión completa (dispositivo confiado)
    */
   async function handleLogin(email, password) {
     setIsLoading(true);
     setError(null);
     try {
-      const tokenData = await loginService(email, password);
+      const result = await loginService(email, password);
 
-      // Guardamos el access token via la acción del store (no setState directo)
-      useAuthStore.getState().setAccessToken(tokenData.access_token);
+      if (result.requires_2fa) {
+        return {
+          requires2FA: true,
+          pendingToken: result.pending_token,
+          message: result.message,
+        };
+      }
 
-      // getMe() es la fuente de verdad: rol, nombre, permisos, etc.
-      const userData = await getMe();
-
-      login(tokenData.access_token, userData);
-
-      // Retornamos el rol de getMe(), no el del login response
-      return userData.role;
+      const role = await _completeLogin(result);
+      return { role };
     } catch (err) {
-      setError(resolveErrorMessage(err));
+      setError(resolveErrorMessage(err, "login"));
       return null;
     } finally {
       setIsLoading(false);
@@ -62,15 +74,31 @@ export function useAuth() {
   }
 
   /**
-   * Logout completo: invalida el token en el backend y limpia el estado local.
-   * Preferir este sobre llamar a logout() del store directamente.
+   * Paso 2 (solo si handleLogin devolvió requires2FA): verificar el código.
+   * Retorna null en error, { role } en éxito.
    */
+  async function handleVerify2FA(pendingToken, code) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const tokenData = await verifyTwoFactorService(pendingToken, code);
+      const role = await _completeLogin(tokenData);
+      return { role };
+    } catch (err) {
+      setError(resolveErrorMessage(err, "2fa"));
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function handleLogout() {
     await logoutUser();
   }
 
   return {
     handleLogin,
+    handleVerify2FA,
     handleLogout,
     user,
     isAuthenticated,

@@ -64,3 +64,11 @@ export async function logoutUser() {
     useAuthStore.getState().logout();
   }
 }
+
+export async function verifyTwoFactor(pendingToken, code) {
+  const { data } = await axiosClient.post("/auth/verify-2fa", {
+    pending_token: pendingToken,
+    code,
+  });
+  return data; // { access_token, token_type, role }
+}

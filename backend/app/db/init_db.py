@@ -1,25 +1,18 @@
-#script para crear la base de datos y las tablas necesarias
 # app/db/init_db.py
-
-#Crea las tablas (si no existen) e inserta el primer admin.
-#Se ejecuta una sola vez en el lifespan de FastAPI.
-
+"""
+Siembra el admin inicial. La creación/migración del esquema ahora la maneja
+Alembic exclusivamente (alembic upgrade head), no este módulo.
+"""
 
 from sqlalchemy import select
 
 from ..core.config import settings
 from ..core.security import hash_password
-from .database import engine, AsyncSessionLocal
-from ..models import models  # Importar para que Base conozca los modelos
-from .database import Base
+from .database import AsyncSessionLocal
+from ..models import models
 
 
 async def init_db() -> None:
-    # 1. Crear tablas
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    # 2. Seed: crear admin inicial si no existe
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(models.User).where(models.User.email == settings.FIRST_ADMIN_EMAIL)
@@ -31,9 +24,11 @@ async def init_db() -> None:
                 hashed_password=hash_password(settings.FIRST_ADMIN_PASSWORD),
                 role="admin",
                 is_active=True,
+                must_change_password=True,
             )
             session.add(admin)
             await session.commit()
             print(f"✅ Admin seed creado: {settings.FIRST_ADMIN_EMAIL}")
+            print("⚠️  Debe cambiar la contraseña en el primer inicio de sesión.")
         else:
             print("ℹ️  Admin ya existe, omitiendo seed.")

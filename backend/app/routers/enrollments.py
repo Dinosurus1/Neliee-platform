@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 
 from ..core.dependencies import get_current_user, get_db, require_admin
 from ..models.models import Course, Enrollment, User
@@ -86,9 +87,15 @@ async def enroll_user(
 
     enrollment = Enrollment(user_id=payload.user_id, course_id=payload.course_id)
     db.add(enrollment)
-    # FIX: faltaba commit() — los datos nunca se persistían
-    await db.flush()
-    await db.commit()
+    try:
+        await db.flush()
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="La usuaria ya está inscrita en este curso.",
+        )
 
     # Recargar con relación course para el response
     result = await db.execute(

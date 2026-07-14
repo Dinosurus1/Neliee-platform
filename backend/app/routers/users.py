@@ -9,11 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 
 from ..core.dependencies import get_db, require_admin
 from ..core.security import hash_password
 from ..models.models import Enrollment, User
-from ..schemas.user import UserCreate, UserOut, UserUpdate
+from ..schemas.user import  UserOut, UserUpdate
 
 router = APIRouter()
 
@@ -54,34 +55,6 @@ async def list_users(
 
 # POST /
 
-@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def create_user(
-    payload: UserCreate,
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    """Crea una empleada directamente (sin flujo de invitación). Solo admins."""
-    existing = await db.execute(select(User).where(User.email == payload.email))
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El email ya está registrado.",
-        )
-
-    user = User(
-        full_name=payload.full_name,
-        email=payload.email,
-        hashed_password=hash_password(payload.password),
-        role="employee",
-    )
-    db.add(user)
-    # FIX: flush + commit en lugar de solo flush
-    # flush() envía el INSERT pero sin commit() el ORM hace rollback al cerrar la sesión
-    await db.flush()
-    await db.commit()
-
-    # Recargar con enrollments (vacío para usuario nuevo, pero necesario para el schema)
-    return await _get_user_with_enrollments(user.id, db)
 
 
 

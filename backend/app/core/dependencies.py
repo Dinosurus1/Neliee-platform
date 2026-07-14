@@ -8,7 +8,7 @@ Dependencias reutilizables de FastAPI:
 
 import uuid
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError  # PyJWT — consistente con security.py
                                    # FIX: era "from jose import JWTError" pero security.py
@@ -21,10 +21,20 @@ from .security import decode_token
 from ..db.database import get_db
 from ..models.models import User
 
+
+_PASSWORD_CHANGE_EXEMPT_PATHS = {
+    "/api/v1/auth/change-password",
+    "/api/v1/auth/logout",
+    "/api/v1/auth/me",
+    "/api/v1/auth/refresh",
+}
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
@@ -51,9 +61,15 @@ async def get_current_user(
 
     if user is None or not user.is_active:
         raise credentials_exception
+    
+    if user.must_change_password and request.url.path not in _PASSWORD_CHANGE_EXEMPT_PATHS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="PASSWORD_CHANGE_REQUIRED",
+        )
 
     return user
-
+    
 
 async def require_admin(
     current_user: User = Depends(get_current_user),
