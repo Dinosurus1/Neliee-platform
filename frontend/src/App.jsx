@@ -19,13 +19,15 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 
 import { useAuthStore } from "./store/authStore";
 import { getMe, logoutUser } from "./api/authService";
 import Spinner from "./components/ui/Spinner";
 
 // ── Lazy imports ───────────────────────────────────────────────────────────
+const ChangePasswordPage = lazy(() => import("./pages/public/ChangePasswordPage"));
+
 const LandingPage      = lazy(() => import("./pages/public/LandingPage"));
 const LoginPage        = lazy(() => import("./pages/public/LoginPage"));
 const ActivatePage     = lazy(() => import("./pages/public/ActivatePage"));
@@ -76,12 +78,27 @@ function useAuthInit() {
 
 function ProtectedRoute() {
   const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  const location = useLocation();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.must_change_password && location.pathname !== "/cambiar-password") {
+    return <Navigate to="/cambiar-password" replace />;
+  }
+}
+function RequirePasswordChange() {
+  const {isAuthenticated, user} = useAuthStore();
+  if (!isAuthenticated) return <Outlet />;
+  if (user?.must_change_password) return <Navigate to="/cambiar-password" replace />;
+  return <Outlet />;
 }
 
 function AdminRoute() {
   const { isAuthenticated, user } = useAuthStore();
-  if (!isAuthenticated)       return <Navigate to="/login"     replace />;
+  const location = useLocation();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.must_change_password && location.pathname !== "/cambiar-password") {
+    return <Navigate to="/cambiar-password" replace />;
+
+  }
   if (user?.role !== "admin") return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
@@ -109,9 +126,12 @@ export default function App() {
           <Route element={<GuestRoute />}>
             <Route path="/login" element={<LoginPage />} />
           </Route>
-
+         
+          <Route path="/cambiar-password" element={<ChangePasswordPage />} />
+          <Route element={<RequirePasswordChange />} />
           {/* ── Área de empleada ─────────────────────────────────────── */}
-          <Route element={<ProtectedRoute />}>
+          
+           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard"                 element={<DashboardPage />} />
               <Route path="/dashboard/curso/:courseId" element={<CoursePage />} />

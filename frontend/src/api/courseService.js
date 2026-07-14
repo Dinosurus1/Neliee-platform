@@ -13,7 +13,7 @@ export async function markCourseComplete(enrollmentId) {
 
 // Admin: todos los cursos
 export async function getAllCourses() {
-  const { data } = await axiosClient.get("/courses");
+  const { data } = await axiosClient.get("/courses/admin");
   return data;
 }
 

@@ -1,14 +1,11 @@
 import axiosClient from "./axiosClient";
 
 export async function getUsers() {
-  const { data } = await axiosClient.get("/admin/users");
+  const { data } = await axiosClient.get("/admin/users/");
   return data;
 }
 
-export async function createUser(payload) {
-  const { data } = await axiosClient.post("/admin/users", payload);
-  return data;
-}
+
 
 export async function updateUser(userId, payload) {
   const { data } = await axiosClient.patch(`/admin/users/${userId}`, payload);

@@ -45,23 +45,29 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Red de seguridad: si el backend exige cambio de contraseña, redirige ya.
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.detail === "PASSWORD_CHANGE_REQUIRED" &&
+      window.location.pathname !== "/cambiar-password"
+    ) {
+      window.location.href = "/cambiar-password";
+      return Promise.reject(error);
+    }
+
     // Guard 1: solo manejar 401
     if (error.response?.status !== 401) {
       return Promise.reject(error);
     }
 
-    // Guard 2: no reintentar si ya se reintentó
     if (originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    /**
-     * Guard 3: no intentar refresh sobre los endpoints de auth.
-     * Previene loops infinitos si /auth/refresh o /auth/login devuelven 401.
-     */
+    // FIX: faltaba el || — antes /auth/verify-2fa nunca entraba aquí
     const isAuthEndpoint =
       originalRequest.url?.includes("/auth/refresh") ||
-      originalRequest.url?.includes("/auth/login"); 
+      originalRequest.url?.includes("/auth/login") ||
       originalRequest.url?.includes("/auth/verify-2fa");
     if (isAuthEndpoint) {
       return Promise.reject(error);

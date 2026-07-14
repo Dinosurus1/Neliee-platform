@@ -39,7 +39,7 @@ export function useAuth() {
     useAuthStore.getState().setAccessToken(tokenData.access_token);
     const userData = await getMe();
     login(tokenData.access_token, userData);
-    return userData.role;
+    return {role: userData.role, mustChangePassword: userData.must_change_password};
   }
 
   /**
@@ -63,8 +63,7 @@ export function useAuth() {
         };
       }
 
-      const role = await _completeLogin(result);
-      return { role };
+      return await _completeLogin(result);
     } catch (err) {
       setError(resolveErrorMessage(err, "login"));
       return null;
@@ -82,8 +81,7 @@ export function useAuth() {
     setError(null);
     try {
       const tokenData = await verifyTwoFactorService(pendingToken, code);
-      const role = await _completeLogin(tokenData);
-      return { role };
+      return await _completeLogin(tokenData);
     } catch (err) {
       setError(resolveErrorMessage(err, "2fa"));
       return null;

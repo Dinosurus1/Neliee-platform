@@ -27,6 +27,10 @@ export default function LoginPage() {
   }
 
   function redirectByRole(role) {
+    if(mustChangePassword) {
+      navigate("/change-password", { replace: true });
+      return;
+    }
     if (role === "admin") {
       navigate("/admin", { replace: true });
     } else if (role === "employee") {
@@ -55,14 +59,14 @@ export default function LoginPage() {
       return;
     }
 
-    redirectByRole(result.role);
+    redirectByRole(result.role, result.mustChangePassword);
   }
 
   async function handleVerifySubmit(e) {
     e.preventDefault();
     const result = await handleVerify2FA(pendingToken, code);
     if (!result) return; // el error ya se muestra vía `error` del hook
-    redirectByRole(result.role);
+    redirectByRole(result.role, result.mustChangePassword);
   }
 
   function handleBackToLogin() {

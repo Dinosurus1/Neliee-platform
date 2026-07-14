@@ -72,3 +72,12 @@ export async function verifyTwoFactor(pendingToken, code) {
   });
   return data; // { access_token, token_type, role }
 }
+
+
+export async function changePassword(currentPassword, newPassword) {
+  const { data } = await axiosClient.post("/auth/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  return data; // { message: "Password changed successfully" }
+}
