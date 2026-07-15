@@ -1,17 +1,32 @@
 import { useState } from "react";
-import api from "../../../../api/dashboardService";
+import api, { descargarConAuth } from "../../../../api/dashboardService";
 
 /**
- * Construye la URL de descarga respetando el proxy de Vite o el túnel Cloudflare.
- * Cuando baseURL es relativa ("/api-dashboard"), la completa con window.location.origin
- * para que window.open funcione correctamente también con túnel compartido.
+ * Cambios de esta revisión:
+ *
+ * 1. "Descargar Excel" y "Descargar Backup" usaban
+ *    window.open(buildDownloadUrl(...)). Ahora que el ERP exige el header
+ *    Authorization en todas sus rutas (antes no exigía nada — ver
+ *    backend/app/core/security.py del ERP), abrir la URL en una pestaña
+ *    nueva ya no funciona: el navegador no manda headers custom en una
+ *    navegación simple, así que el backend respondía 401. Se reemplazó por
+ *    descargarConAuth(), que pide el archivo vía axios (sí manda el header)
+ *    como blob y dispara la descarga.
+ *
+ * 2. "Backup de Base de Datos" apuntaba a /exportar/db, que no existía
+ *    (daba 404). Ahora existe: genera un dump real de PostgreSQL con
+ *    pg_dump (.sql), no un archivo .db — el texto se actualizó para
+ *    reflejar eso.
+ *
+ * 3. Se quitó la tarjeta "Restaurar Base de Datos". Llamaba a
+ *    /exportar/importar-db, que tampoco existía, y aunque hubiera existido:
+ *    un botón público que reemplaza la base de datos completa desde un
+ *    archivo subido es un riesgo severo incluso detrás de autenticación
+ *    (una sesión de admin comprometida, o un solo click equivocado, borra
+ *    toda la data de producción). Restaurar un backup debe ser una
+ *    operación manual desde el servidor, no un botón del dashboard — se
+ *    reemplazó por una tarjeta informativa con el comando correcto.
  */
-const buildDownloadUrl = (endpoint) => {
-  const base = api.defaults.baseURL ?? "";
-  return base.startsWith("http")
-    ? `${base}${endpoint}`
-    : `${window.location.origin}${base}${endpoint}`;
-};
 
 const ActionCard = ({ icon, title, description, children }) => (
   <div
@@ -30,31 +45,34 @@ const ActionCard = ({ icon, title, description, children }) => (
 );
 
 const Exportar = () => {
-  const [importando, setImportando] = useState(false);
+  const [descargando, setDescargando] = useState(null); // null | 'excel' | 'db'
   const [mensaje, setMensaje] = useState("");
+const descargarExcel = async () => {
+  setDescargando("excel");
+  setMensaje("");
+  try {
+    await descargarConAuth("/exportar/excel", "Neliee.xlsx");
+  } catch (err) {
+    setMensaje({ tipo: "error", texto: err.detail || "Error al descargar el Excel." });
+  } finally {
+    setDescargando(null);
+  }
+};
 
-  const importarDb = async (e) => {
-    const archivo = e.target.files?.[0];
-    if (!archivo) return;
-    setImportando(true);
-    setMensaje("");
-    const form = new FormData();
-    form.append("archivo", archivo);
-    try {
-      const { data } = await api.post("/exportar/importar-db", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setMensaje({ tipo: "ok", texto: data.mensaje });
-    } catch (err) {
-      setMensaje({
-        tipo: "error",
-        texto: err.response?.data?.detail || "Error al importar.",
-      });
-    } finally {
-      setImportando(false);
-      e.target.value = "";
-    }
-  };
+const descargarBackup = async () => {
+  setDescargando("db");
+  setMensaje("");
+  try {
+    await descargarConAuth("/exportar/db", "neliee_backup.sql");
+  } catch (err) {
+    const detalle = err.response?.status === 501
+      ? "pg_dump no está instalado en el servidor. Contactá al administrador del sistema."
+      : err.detail || "Error al generar el backup.";
+    setMensaje({ tipo: "error", texto: detalle });
+  } finally {
+    setDescargando(null);
+  }
+};
 
   return (
     <div className="card p-6">
@@ -69,7 +87,7 @@ const Exportar = () => {
           📦
         </div>
         <div>
-          <h2 className="font-bold text-slate-800">Exportar / Importar</h2>
+          <h2 className="font-bold text-slate-800">Exportar</h2>
           <p className="text-xs text-slate-400">Gestión de datos y backups</p>
         </div>
       </div>
@@ -81,61 +99,53 @@ const Exportar = () => {
           description="Clientes, Productos y Órdenes en un archivo .xlsx"
         >
           <button
-            onClick={() => window.open(buildDownloadUrl("/exportar/excel"), "_blank")}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+            onClick={descargarExcel}
+            disabled={descargando === "excel"}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
             style={{ background: "#059669" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#047857")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#059669")}
           >
-            ⬇ Descargar Excel
+            {descargando === "excel" ? "⏳ Generando..." : "⬇ Descargar Excel"}
           </button>
         </ActionCard>
 
         <ActionCard
           icon="💾"
           title="Backup de Base de Datos"
-          description="Descarga el archivo .db completo del sistema"
+          description="Dump completo de PostgreSQL (.sql) con pg_dump"
         >
           <button
-            onClick={() => window.open(buildDownloadUrl("/exportar/db"), "_blank")}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+            onClick={descargarBackup}
+            disabled={descargando === "db"}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
             style={{ background: "#2563EB" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#1D4ED8")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
           >
-            ⬇ Descargar Backup .db
+            {descargando === "db" ? "⏳ Generando..." : "⬇ Descargar Backup (.sql)"}
           </button>
         </ActionCard>
 
         <ActionCard
-          icon="📂"
+          icon="🔒"
           title="Restaurar Base de Datos"
-          description={
-            <span>
-              Carga un .db previo —{" "}
-              <span className="text-red-400 font-semibold">reemplaza la base actual</span>
-            </span>
-          }
+          description="No disponible desde el dashboard, a propósito"
         >
-          <label
-            className={`flex items-center justify-center w-full py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              importando ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            style={{
-              background: "#FEF3C7",
-              color: "#92400E",
-              border: "1.5px dashed #FCD34D",
-            }}
+          <div
+            className="rounded-xl p-3 text-xs leading-relaxed"
+            style={{ background: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A" }}
           >
-            {importando ? "⏳ Importando..." : "📂 Cargar Backup .db"}
-            <input
-              type="file"
-              accept=".db"
-              className="hidden"
-              disabled={importando}
-              onChange={importarDb}
-            />
-          </label>
+            <p className="mb-2">
+              Restaurar un backup reemplaza <strong>toda</strong> la base de datos actual.
+              Por eso no es un botón del dashboard — es una operación manual desde el
+              servidor, con acceso directo a la base de datos:
+            </p>
+            <code className="block px-2 py-1.5 rounded-lg text-[11px]" style={{ background: "#1a140f", color: "#f8d7b4" }}>
+              psql "$DATABASE_URL" &lt; neliee_backup.sql
+            </code>
+            <p className="mt-2">Pedile este paso a quien administre el servidor.</p>
+          </div>
         </ActionCard>
 
         {mensaje && (

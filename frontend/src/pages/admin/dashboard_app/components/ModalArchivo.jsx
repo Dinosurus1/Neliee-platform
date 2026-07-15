@@ -1,10 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
-import api from '../../../../api/dashboardService';
+import api, { buildDownloadUrl } from '../../../../api/dashboardService';
 
 /**
  * ModalArchivo
  * Se abre al hacer clic en la celda "Archivo" de una orden.
  * Permite: ver archivo activo, subir nuevo, reemplazar, ver historial.
+ *
+ * Cambios de esta revisión:
+ * - El link "Abrir" usaba `archivoActivo.onedrive_url`, un campo que nunca
+ *   existió en la respuesta del backend (el campo real es `gdrive_url`, y
+ *   además dejó de ser un link público usable directo — ver
+ *   app/services/gdrive.py del ERP). Ahora usa `descarga_url`, que el
+ *   backend genera con un token firmado de corta duración y sí es
+ *   descargable, vía buildDownloadUrl() igual que en Exportar.jsx.
+ * - `archivoActivo.fecha_vinculacion` tampoco existía (el campo real es
+ *   `fecha_subida`); se corrigió, si no se veía "Invalid Date".
+ * - Historial: los links "Versión anterior" / "Versión nueva" apuntaban a
+ *   `h.url_anterior` / `h.url_nueva`, URLs de Drive crudas que ya no son
+ *   públicas. Ahora usan `descarga_url_anterior` / `descarga_url_nueva`
+ *   (mismo mecanismo de token firmado). Si un registro de historial es
+ *   viejo (de antes de este fix) y no tiene `descarga_url_nueva`, el botón
+ *   se muestra deshabilitado en vez de llevar a un link roto.
+ * - Texto actualizado de "OneDrive" a "Google Drive" (el backend migró de
+ *   OneDrive a Drive hace rato; el copy había quedado desactualizado).
  */
 const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
   const [historial, setHistorial]       = useState([]);
@@ -67,25 +85,27 @@ const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
       });
       setExito(esReemplazo
         ? '✅ Archivo reemplazado y versión anterior guardada en el historial.'
-        : '✅ Archivo subido a OneDrive y vinculado a la orden.');
+        : '✅ Archivo subido a Google Drive y vinculado a la orden.');
       setArchivoSel(null);
       setMotivo('');
       if (inputRef.current) inputRef.current.value = '';
       await cargarHistorial();
       if (onActualizar) onActualizar(data);
     } catch (err) {
-      const detalle = err.response?.data?.detail || 'Error al subir el archivo a OneDrive.';
+      const detalle = err.response?.data?.detail || 'Error al subir el archivo a Google Drive.';
       setError(`❌ ${detalle}`);
     } finally {
       setSubiendo(false);
     }
   };
 
-  const formatFecha = (iso) =>
-    new Date(iso).toLocaleDateString('es-CO', {
+  const formatFecha = (iso) => {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('es-CO', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
+  };
 
   return (
     <div
@@ -130,7 +150,7 @@ const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
           {/* ── Archivo activo ───────────────────────────────────── */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
-              Archivo activo en OneDrive
+              Archivo activo en Google Drive
             </p>
             {archivoActivo ? (
               <div
@@ -143,18 +163,28 @@ const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
                   </p>
                   <p className="text-xs text-emerald-600 mt-0.5">
                     Versión {archivoActivo.version} · vinculado el{' '}
-                    {formatFecha(archivoActivo.fecha_vinculacion)}
+                    {formatFecha(archivoActivo.fecha_subida)}
                   </p>
                 </div>
-                <a
-                  href={archivoActivo.onedrive_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl transition-all"
-                  style={{ background: '#DCFCE7', color: '#166534' }}
-                >
-                  Abrir ↗
-                </a>
+                {archivoActivo.descarga_url ? (
+                  <a
+                    href={buildDownloadUrl(archivoActivo.descarga_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl transition-all"
+                    style={{ background: '#DCFCE7', color: '#166534' }}
+                  >
+                    Abrir ↗
+                  </a>
+                ) : (
+                  <span
+                    className="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl"
+                    style={{ background: '#F1F5F9', color: '#94A3B8' }}
+                    title="Este archivo no tiene un ID de Drive asociado."
+                  >
+                    No disponible
+                  </span>
+                )}
               </div>
             ) : (
               <div
@@ -169,7 +199,7 @@ const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
           {/* ── Subir / Reemplazar ───────────────────────────────── */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
-              {esReemplazo ? 'Reemplazar archivo' : 'Subir archivo a OneDrive'}
+              {esReemplazo ? 'Reemplazar archivo' : 'Subir archivo a Google Drive'}
             </p>
 
             {esReemplazo && (
@@ -218,7 +248,7 @@ const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
                   <p className="font-semibold text-slate-500 text-sm">
                     Hacé clic o arrastrá un archivo
                   </p>
-                  <p className="text-xs text-slate-400">PDF, AI, PSD, PNG, JPG, etc.</p>
+                  <p className="text-xs text-slate-400">PDF, AI, EPS, PSD, PNG, JPG, ZIP, RAR — máx. 20&nbsp;MB</p>
                 </div>
               )}
               <input
@@ -253,10 +283,10 @@ const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
               className="btn-primary w-full mt-3"
             >
               {subiendo
-                ? '⏳ Subiendo a OneDrive...'
+                ? '⏳ Subiendo a Google Drive...'
                 : esReemplazo
-                  ? '🔄 Reemplazar en OneDrive'
-                  : '⬆ Subir a OneDrive'}
+                  ? '🔄 Reemplazar en Google Drive'
+                  : '⬆ Subir a Google Drive'}
             </button>
 
             {esReemplazo && (
@@ -305,24 +335,44 @@ const ModalArchivo = ({ orden, onCerrar, onActualizar }) => {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <a
-                        href={h.url_anterior}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-center px-2 py-1.5 rounded-lg font-medium transition"
-                        style={{ background: '#FEF3C7', color: '#92400E' }}
-                      >
-                        📄 Versión anterior
-                      </a>
-                      <a
-                        href={h.url_nueva}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-center px-2 py-1.5 rounded-lg font-medium transition"
-                        style={{ background: '#EFF6FF', color: '#1D4ED8' }}
-                      >
-                        📄 Versión nueva
-                      </a>
+                      {h.descarga_url_anterior ? (
+                        <a
+                          href={buildDownloadUrl(h.descarga_url_anterior)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-center px-2 py-1.5 rounded-lg font-medium transition"
+                          style={{ background: '#FEF3C7', color: '#92400E' }}
+                        >
+                          📄 Versión anterior
+                        </a>
+                      ) : (
+                        <span
+                          className="text-xs text-center px-2 py-1.5 rounded-lg font-medium"
+                          style={{ background: '#F1F5F9', color: '#94A3B8' }}
+                          title="No disponible para este registro."
+                        >
+                          📄 Versión anterior
+                        </span>
+                      )}
+                      {h.descarga_url_nueva ? (
+                        <a
+                          href={buildDownloadUrl(h.descarga_url_nueva)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-center px-2 py-1.5 rounded-lg font-medium transition"
+                          style={{ background: '#EFF6FF', color: '#1D4ED8' }}
+                        >
+                          📄 Versión nueva
+                        </a>
+                      ) : (
+                        <span
+                          className="text-xs text-center px-2 py-1.5 rounded-lg font-medium"
+                          style={{ background: '#F1F5F9', color: '#94A3B8' }}
+                          title="Registrado antes de esta actualización — no disponible."
+                        >
+                          📄 Versión nueva
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}

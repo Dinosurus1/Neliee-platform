@@ -47,7 +47,41 @@ export async function tryRefreshToken() {
     return null;
   }
 }
+// ── Refresh coordinado entre TODOS los clientes axios (main + ERP) ────────
+// Evita que dos 401 casi simultáneos (uno del backend principal, otro del
+// ERP) disparen dos POST /auth/refresh en paralelo: el backend rota el
+// refresh token en cada llamada, así que un segundo refresh concurrente
+// encontraría el token ya usado y activaría la detección de reuso (revoca
+// toda la familia de tokens → cierre de sesión sin que haya pasado nada
+// malicioso). Con esto, solo el primer 401 dispara el refresh real; los
+// demás esperan el mismo resultado.
+let isRefreshing = false;
+let waiters = [];
 
+export async function coordinatedRefresh() {
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      waiters.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const newToken = await tryRefreshToken();
+    if (!newToken) throw new Error("No se pudo refrescar la sesión.");
+    waiters.forEach((w) => w.resolve(newToken));
+    waiters = [];
+    return newToken;
+  } catch (err) {
+    waiters.forEach((w) => w.reject(err));
+    waiters = [];
+    throw err;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+export const PUBLIC_PATHS = ["/", "/login", "/activate"];
 /**
  * Logout completo:
  * 1. Llama al backend para invalidar el refresh token en BD

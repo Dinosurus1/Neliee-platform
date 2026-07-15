@@ -46,6 +46,10 @@ const ProductosPage    = lazy(() => import("./pages/admin/dashboard_app/componen
 const RendimientosPage = lazy(() => import("./pages/admin/dashboard_app/components/RendimientosPage"));
 const ExportarPage     = lazy(() => import("./pages/admin/dashboard_app/components/Exportar"));
 
+const PUBLIC_PATHS = ["/", "/login", "/activate"];
+
+
+
 // ── Spinner compartido ─────────────────────────────────────────────────────
 const FullPageSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-gray-950">
@@ -60,7 +64,7 @@ function useAuthInit() {
   useEffect(() => {
     const { isAuthenticated, updateUser } = useAuthStore.getState();
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || PUBLIC_PATHS.includes(window.location.pathname)) {
       setIsChecking(false);
       return;
     }
@@ -77,12 +81,13 @@ function useAuthInit() {
 // ── Guards ─────────────────────────────────────────────────────────────────
 
 function ProtectedRoute() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.must_change_password && location.pathname !== "/cambiar-password") {
     return <Navigate to="/cambiar-password" replace />;
   }
+  return <Outlet />;
 }
 function RequirePasswordChange() {
   const {isAuthenticated, user} = useAuthStore();
