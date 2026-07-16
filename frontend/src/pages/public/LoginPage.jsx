@@ -46,28 +46,57 @@ export default function LoginPage() {
 
     const result = await handleLogin(form.email, form.password);
 
+    console.log("Login result:", result);
+
     if (!result) {
       const next = attempts + 1;
       setAttempts(next);
       if (next >= MAX_ATTEMPTS) setLockedOut(true);
       return;
-    }
+  }
 
     if (result.requires2FA) {
       setPendingToken(result.pendingToken);
       setTwoFAMessage(result.message);
       return;
-    }
+  }
 
-    redirectByRole(result.role, result.mustChangePassword);
+  redirectByRole(result.role, result.mustChangePassword);
+
+
+ function redirectByRole(role, mustChangePassword) {
+   if (mustChangePassword) {
+     navigate("/cambiar-password", { replace: true });
+     return;
+  }
+
+   switch (role) {
+     case "admin":
+       navigate("/admin", { replace: true });
+       break;
+
+     case "employee":
+       navigate("/dashboard", { replace: true });
+       break;
+
+     default:
+       navigate("/dashboard", { replace: true });
+       break;
+  }
+}
   }
 
   async function handleVerifySubmit(e) {
-    e.preventDefault();
-    const result = await handleVerify2FA(pendingToken, code);
-    if (!result) return; // el error ya se muestra vía `error` del hook
-    redirectByRole(result.role, result.mustChangePassword);
-  }
+  e.preventDefault();
+
+  const result = await handleVerify2FA(pendingToken, code);
+
+  
+
+  if (!result) return;
+
+  redirectByRole(result.role, result.mustChangePassword);
+}
 
   function handleBackToLogin() {
     setPendingToken(null);

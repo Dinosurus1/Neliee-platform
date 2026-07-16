@@ -64,7 +64,7 @@ function useAuthInit() {
   useEffect(() => {
     const { isAuthenticated, updateUser } = useAuthStore.getState();
 
-    if (!isAuthenticated || PUBLIC_PATHS.includes(window.location.pathname)) {
+    if (!isAuthenticated) {
       setIsChecking(false);
       return;
     }
@@ -83,6 +83,7 @@ function useAuthInit() {
 function ProtectedRoute() {
   const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
+  
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.must_change_password && location.pathname !== "/cambiar-password") {
     return <Navigate to="/cambiar-password" replace />;
@@ -110,6 +111,7 @@ function AdminRoute() {
 
 function GuestRoute() {
   const { isAuthenticated, user } = useAuthStore();
+  
   if (!isAuthenticated) return <Outlet />;
   return <Navigate to={user?.role === "admin" ? "/admin" : "/dashboard"} replace />;
 }
